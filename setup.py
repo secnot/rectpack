@@ -7,7 +7,7 @@ setup(
     description='2D Rectangle packing library',
     
     # Main homepage
-    url='https://github.com/secnot/rectpack/',
+    url='https://gitlab.com/secnot/rectpack/',
     
     # Extra info and author details
     author='SecNot',
