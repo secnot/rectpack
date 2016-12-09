@@ -51,6 +51,9 @@ for bin in packer:
 		# Do something with the rectangles
 ```
 
+All the dimmensions and positions must be integers, used float2dec to convert
+float values to integers. (see float below)
+
 Algorithms
 ==========
 
@@ -122,7 +125,7 @@ Most of the packing algorithms implemented have problems with float rounding
 errors which can result in collisions.
 If you need to use floats just convert them to fixed-point using Decimal 
 rounding up so the actual rectangle size is always smaller than the conversion.
-Rectpack provides helper funcion **float2dev** for this task:
+Rectpack provides helper funcion **float2dec** for this task:
 
 ```python
 	from rectpack import float2dec, newPacker
@@ -134,15 +137,6 @@ Rectpack provides helper funcion **float2dev** for this task:
 	
 	....
 ```
-
-
-
-
-Enclose
-=======
-
-Enclose rectangles
-
 
 References
 ==========
