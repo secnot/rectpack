@@ -3,6 +3,17 @@ Python 2D rectangle packing library
 
 ![alt tag](docs/maxrects.png)
 
+
+Installation
+============
+
+Just dowload the zipped package or clone the repository, inside the directory
+type:
+
+```bash
+python setup.py install
+```
+
 Usage
 =====
 
