@@ -7,8 +7,7 @@ Python 2D rectangle packing library
 Installation
 ============
 
-Just dowload the zipped package or clone the repository, inside the directory
-type:
+Just dowload the package or clone the repository, Then install with:
 
 ```bash
 python setup.py install
