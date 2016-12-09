@@ -1,5 +1,7 @@
 # rectpack
-Python 2D rectangle packing library
+
+Rectpack is a collection of algorithms for solving the 2D knapsack problem,
+or packing as much rectangles as possible into another one.
 
 ![alt tag](docs/maxrects.png)
 
@@ -13,8 +15,8 @@ Just dowload the package or clone the repository, Then install with:
 python setup.py install
 ```
 
-Usage
-=====
+Basic Usage
+===========
 
 Packing rectangles in a number of bins is very simple:
 
@@ -24,18 +26,18 @@ from rectpack import newPacker
 rectangles = [(100, 30), (40, 60), (30, 30), .....]
 bins = [(300, 450), (80, 40), ...]
 
-p = newPacker()
+packer = newPacker()
 
 # Add all the rectangles to be packed
 for r in rectangles:
-	p.add_rect(*r)
+	packer.add_rect(*r)
 
 # Add bins where the rectangles will be placed
 for b in bins:
-	p.add_bin(*b)
+	packer.add_bin(*b)
 
 # Do packing
-p.pack()
+packer.pack()
 
 # Iterate through each bin and obtain a list of rectangle positions
 # format [(x0, y0, w0, h0, rid0), (x1, y1, w1, h1, rid1), ...]
@@ -44,13 +46,74 @@ p.pack()
 #	w -> Width
 #	h -> Height
 #	rid -> User asigned id or None
-for b in p:
-	b.get_rect_list()
-
+for bin in packer:
+	for rect in bin.get_rect_list()
+		# Do something with the rectangles
 ```
 
-Tests
-=====
+Algorithms
+==========
+
+This library implements three of the algorithms described in [1] an excellent
+survey of packing algorithms, Skyline, Maxrects, and Guillotine.
+
+To select an specific algorithm for packing:
+
+```python
+form rectpack import *
+
+pack = newPacker(pack_algo=MaxRectsBssf)
+```
+
+The list of available algorithms is as follows:
+
+* MaxRects
+	* MaxRectsBl
+	* MaxRectsBssf
+	* MaxRectsBaf
+	* MaxRectsBlsf
+
+* Skyline
+	* SkylineMwf
+	* SkylineMwfl
+	* SkylineBl
+	* SkylineBlWm
+	* SkylineMwfWm
+	* SkylineMwflWm
+
+* Guillotine
+	* GuillotineBssfSas
+	* GuillotineBssfLas
+	* GuillotineBssfSlas
+	* GuillotineBssfLlas
+	* GuillotineBssfMaxas
+	* GuillotineBssfMinas
+	* GuillotineBlsfSas
+	* GuillotineBlsfLas
+	* GuillotineBlsfSlas
+	* GuillotineBlsfLlas
+	* GuillotineBlsfMaxas
+	* GuillotineBlsfMinas
+	* GuillotineBafSas
+	* GuillotineBafLas
+	* GuillotineBafSlas
+	* GuillotineBafLlas
+	* GuillotineBafMaxas
+	* GuillotineBafMinas
+
+The nomenclature used is the same as described in [1], if you don't want to read
+anything I recomend the default algorithm unles the number of rectangles is too
+big and the packing is slow, in that case change to the Guillotine that
+gives you the best result.
+
+Testing
+=======
+
+Rectpack is thoroughly tested, run the test with the following command:
+
+```bash
+python setup.py test
+```
 
 Float
 =====
