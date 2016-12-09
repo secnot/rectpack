@@ -51,8 +51,8 @@ for bin in packer:
 		# Do something with the rectangles
 ```
 
-All the dimmensions and positions must be integers, used float2dec to convert
-float values to integers. (see float below)
+All the dimmensions must be integers, used float2dec to convert float values to integers. 
+(see float below)
 
 Algorithms
 ==========
