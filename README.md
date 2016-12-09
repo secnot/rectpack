@@ -1,6 +1,8 @@
 # rectpack
 Python 2D rectangle packing library
 
+![alt tag](docs/maxrects.png)
+
 Usage
 =====
 
