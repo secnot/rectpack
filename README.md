@@ -15,6 +15,12 @@ Just dowload the package or clone the repository, Then install with:
 python setup.py install
 ```
 
+or using pypi
+
+```bash
+pip install rectpack
+```
+
 Basic Usage
 ===========
 
