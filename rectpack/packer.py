@@ -119,6 +119,7 @@ class PackerOnline(object):
         """
         self._rotation = rotation
         self._pack_algo = pack_algo
+        self._factory = None
         self.reset()
 
     def __iter__(self):
@@ -134,12 +135,14 @@ class PackerOnline(object):
         if not isinstance(key, int):
             raise TypeError("Indices must be integers")
 
-        if key >= len(self) or key < -len(self):
+        size = len(self)  # avoid recalulations
+
+        if key < 0:
+            key += size
+
+        if not 0 <= key < size:
             raise IndexError("Index out of range")
         
-        if key < 0:
-            key = len(self) + key
-
         if key < len(self._closed_bins):
             return self._closed_bins[key]
         else:
@@ -152,15 +155,25 @@ class PackerOnline(object):
         Returns:
             PackingAlgorithm: Initialized empty packing bin.
         """
-        if len(self._empty_bins) == 0:
-            return None
-        else:
+        # Do we have any more empty bins?
+        if len(self._empty_bins) > 0:
             new_bin = self._empty_bins.popleft()
             self._open_bins.append(new_bin)
             return new_bin
+        # Do we have a factory?
+        if self._factory:
+            new_bin = self._factory()
+            self._open_bins.append(new_bin)
+            return new_bin
+        # No more bins
+        return None
 
-    def add_bin(self, width, height):
-        self._empty_bins.append(self._pack_algo(width, height, self._rotation))
+    def add_factory(self, width, height, *args, **kwargs):
+        from functools import partial
+        self._factory = partial(self._pack_algo, width, height, self._rotation, *args, **kwargs)
+
+    def add_bin(self, width, height, *args, **kwargs):
+        self._empty_bins.append(self._pack_algo(width, height, self._rotation, *args, **kwargs))
 
     def rect_list(self):
         rectangles = []
