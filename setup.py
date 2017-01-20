@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='rectpack',
-    version='0.1',
+    version='0.2',
     description='2D Rectangle packing library',
     
     # Main homepage
