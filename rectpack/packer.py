@@ -165,14 +165,16 @@ class PackerOnline(object):
             new_bin = self._factory()
             self._open_bins.append(new_bin)
             return new_bin
-        # No more bins
+        # No more places to look.
         return None
 
     def add_factory(self, width, height, *args, **kwargs):
         from functools import partial
+        # accept the same parameters as PackingAlgorithm objects
         self._factory = partial(self._pack_algo, width, height, self._rotation, *args, **kwargs)
 
     def add_bin(self, width, height, *args, **kwargs):
+        # accept the same parameters as PackingAlgorithm objects
         self._empty_bins.append(self._pack_algo(width, height, self._rotation, *args, **kwargs))
 
     def rect_list(self):
@@ -233,11 +235,15 @@ class Packer(PackerOnline):
     def add_rect(self, width, height, rid=None):
         self._avail_rect.append((width, height, rid))
 
+    def _is_everything_ready:
+        return self._avail_rect and (self._avail_bins or self._factory):
+
     def pack(self):
 
         self.reset()
 
-        if not self._avail_rect or not self._avail_bins:
+        if not self._is_everything_ready():
+            # maybe we should throw an error here?
             return
 
         # Add available bins to packer
@@ -320,7 +326,7 @@ class PackerGlobal(Packer, PackerBNFMixin):
        
         self.reset()
 
-        if not self._avail_rect or not self._avail_bins:
+        if not self._is_everything_ready():
             return
         
         # Add available bins to packer
