@@ -235,8 +235,8 @@ class Packer(PackerOnline):
     def add_rect(self, width, height, rid=None):
         self._avail_rect.append((width, height, rid))
 
-    def _is_everything_ready:
-        return self._avail_rect and (self._avail_bins or self._factory):
+    def _is_everything_ready(self):
+        return self._avail_rect and (self._avail_bins or self._factory)
 
     def pack(self):
 
