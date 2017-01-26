@@ -174,6 +174,21 @@ class TestPackerOnline(TestCase):
         # Only used three bins available.
         self.assertEqual(len(p), 3)
 
+
+        # Infinite
+        p = packer.PackerOnlineBFF(rotation=False)
+        p.add_bin(100, 100, count=float("inf"))
+
+        # Rect 1
+        p.add_rect(90, 90)
+        p.add_rect(95, 95)
+        p.add_rect(96, 96)
+        p.add_rect(97, 97)
+
+        # Only used three bins available.
+        self.assertEqual(len(p), 4)
+
+
     
 class TestPackerOnlineBNF(TestCase):
 
