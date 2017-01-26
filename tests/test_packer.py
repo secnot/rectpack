@@ -184,6 +184,7 @@ class TestPackerOnline(TestCase):
         p.add_rect(95, 95)
         p.add_rect(96, 96)
         p.add_rect(97, 97)
+        p.add_rect(200, 200)
 
         # Only used three bins available.
         self.assertEqual(len(p), 4)
