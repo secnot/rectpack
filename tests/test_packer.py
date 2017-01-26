@@ -165,31 +165,61 @@ class TestPackerOnline(TestCase):
         p = packer.PackerOnlineBFF(rotation=False)
         p.add_bin(100, 100, count=3)
 
-        # Rect 1
         p.add_rect(90, 90)
         p.add_rect(95, 95)
         p.add_rect(96, 96)
         p.add_rect(97, 97)
 
-        # Only used three bins available.
         self.assertEqual(len(p), 3)
 
 
-        # Infinite
+        # Infinite bins
         p = packer.PackerOnlineBFF(rotation=False)
         p.add_bin(100, 100, count=float("inf"))
 
-        # Rect 1
         p.add_rect(90, 90)
         p.add_rect(95, 95)
         p.add_rect(96, 96)
         p.add_rect(97, 97)
         p.add_rect(200, 200)
 
-        # Only used three bins available.
         self.assertEqual(len(p), 4)
 
+        # Several infinite bins
+        p = packer.PackerOnlineBFF(rotation=False)
+        p.add_bin(5, 5, count=float("inf"))
+        p.add_bin(100, 100, count=float("inf"))
+        p.add_bin(99, 99, count=2)
+        p.add_bin(202, 202, count=1)
+        p.add_bin(200, 200, count=float("inf"))
+        
+        p.add_rect(15, 15)
+        p.add_rect(15, 15)
+        p.add_rect(90, 90)
+        p.add_rect(95, 95)
+        p.add_rect(96, 96)
+        p.add_rect(97, 97)
+        p.add_rect(200, 200)
 
+        # Check only required bins are created
+        self.assertEqual(len(p), 6)
+        self.assertTrue(p[0].width == 100 and p[0].height==100)
+        self.assertTrue(p[1].width == 100 and p[1].height==100)
+        self.assertTrue(p[2].width == 100 and p[2].height==100)
+        self.assertTrue(p[3].width == 100 and p[3].height==100)
+        self.assertTrue(p[4].width == 100 and p[4].height==100)
+        self.assertTrue(p[5].width == 202 and p[5].height==202)
+      
+        # Check rectangles packed
+        self.assertEqual(len(p.rect_list()), 7)
+        self.assertTrue((0, 0, 0, 15, 15, None) in p.rect_list())
+        self.assertTrue((0, 15, 0, 15, 15, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 95, 95, None) in p.rect_list())
+        self.assertTrue((3, 0, 0, 96, 96, None) in p.rect_list())
+        self.assertTrue((4, 0, 0, 97, 97, None) in p.rect_list())
+        self.assertTrue((5, 0, 0, 200, 200, None) in p.rect_list())
+        
     
 class TestPackerOnlineBNF(TestCase):
 
