@@ -25,7 +25,6 @@ def float2dec(ft, decimal_digits):
         return decimal.Decimal.from_float(float(ft)).quantize(places)
 
 
-
 # Sorting algos for rectangle lists
 SORT_AREA  = lambda rectlist: sorted(rectlist, reverse=True, 
         key=lambda r: r[0]*r[1]) # Sort by area
@@ -47,6 +46,54 @@ SORT_RATIO = lambda rectlist: sorted(rectlist, reverse=True,
 
 SORT_NONE = lambda rectlist: list(rectlist) # Unsorted
 
+
+
+class BinFactory(object):
+
+    def __init__(self, width, height, count, pack_algo, *args, **kwargs):
+        self._width = width
+        self._height = height
+        self._count = count
+        
+        self._pack_algo = pack_algo
+        self._algo_kwargs = kwargs
+        self._algo_args = args
+        self._ref_bin = None # Reference bin used to calculate fitness
+
+    def _create_bin(self):
+        return self._pack_algo(self._width, self._height, *self._algo_args, **self._algo_kwargs)
+
+    def is_empty(self):
+        return self._count<1
+
+    def fitness(self, width, height):
+        if not self._ref_bin:
+            self._ref_bin = self._create_bin()
+
+        return self._ref_bin.fitness(width, height)
+
+    def fits_inside(self, width, height):
+        # Determine if rectangle widthxheight will fit into empty bin
+        if not self._ref_bin:
+            self._ref_bin = self._create_bin()
+
+        return self._ref_bin._fits_surface(width, height)
+
+    def new_bin(self):
+        if self._count > 0:
+            self._count -= 1
+            return self._create_bin()
+        else:
+            return None
+
+    def __eq__(self, other):
+        return self._width*self._height == other._width*other._height
+
+    def __lt__(self, other):
+        return self._width*self._height < other._width*other._height
+
+    def __str__(self):
+        return "Bin: {} {} {}".format(self._width, self._height, self._count)
 
 
 
@@ -147,7 +194,6 @@ class PackerOnline(object):
         """
         self._rotation = rotation
         self._pack_algo = pack_algo
-        self._factory = None
         self.reset()
 
     def __iter__(self):
@@ -182,38 +228,41 @@ class PackerOnline(object):
 
         Returns:
             PackingAlgorithm: Initialized empty packing bin.
+            None: No bin big enough for the rectangle was found
         """
-        
-        # Do we have any more empty bins?
-        if len(self._empty_bins) > 0:
-            # TODO:  We could scan the empty bins and only
-            # return the first one where the rect fits.
-            new_bin = self._empty_bins.popleft()
-            self._open_bins.append(new_bin)
-            return new_bin
-        
-        # Do we have a factory?
-        if self._factory:
-            new_bin = self._factory()
+        factories_to_delete = set() #
+        new_bin = None
+
+        for key, binfac in self._empty_bins.items():
+
             # Only return the new bin if the rect fits.
             # (If width or height is None, caller doesn't know the size.)
-            if width is None or height is None or new_bin._fits_surface(width, height):
-                self._open_bins.append(new_bin)
-                return new_bin
-            # Pretend we never got a new bin.
-            del new_bin
+            if not binfac.fits_inside(width, height):
+                continue
+           
+            # Create bin and add to open_bins
+            new_bin = binfac.new_bin()
+            if new_bin is None:
+                continue
+            self._open_bins.append(new_bin)
 
-        # No more places to look.
-        return None
+            # If the factory was depleted mark for deletion
+            if binfac.is_empty():
+                factories_to_delete.add(key)
+       
+            break
 
-    def add_factory(self, width, height, *args, **kwargs):
-        from functools import partial
+        # Delete marked factories
+        for f in factories_to_delete:
+            del self._empty_bins[f]
+
+        return new_bin 
+
+    def add_bin(self, width, height, count=1, **kwargs):
         # accept the same parameters as PackingAlgorithm objects
-        self._factory = partial(self._pack_algo, width, height, self._rotation, *args, **kwargs)
-
-    def add_bin(self, width, height, *args, **kwargs):
-        # accept the same parameters as PackingAlgorithm objects
-        self._empty_bins.append(self._pack_algo(width, height, self._rotation, *args, **kwargs))
+        kwargs['rot'] = self._rotation
+        bin_factory = BinFactory(width, height, count, self._pack_algo, **kwargs)
+        self._empty_bins[next(self._bin_count)] = bin_factory
 
     def rect_list(self):
         rectangles = []
@@ -245,8 +294,8 @@ class PackerOnline(object):
         self._open_bins = collections.deque()
 
         # User provided bins not in current use
-        self._empty_bins = collections.deque()
-
+        self._empty_bins = collections.OrderedDict() # O(1) deletion of arbitrary elem
+        self._bin_count = itertools.count()
 
 
 class Packer(PackerOnline):
@@ -270,14 +319,13 @@ class Packer(PackerOnline):
         self._sorted_rect = []
 
     def add_bin(self, width, height, count=1):
-        for _ in range(0, count):
-            self._avail_bins.append((width, height))
+        self._avail_bins.append((width, height, count))
 
     def add_rect(self, width, height, rid=None):
         self._avail_rect.append((width, height, rid))
 
     def _is_everything_ready(self):
-        return self._avail_rect and (self._avail_bins or self._factory)
+        return self._avail_rect and self._avail_bins
 
     def pack(self):
 
@@ -383,7 +431,7 @@ class PackerGlobal(Packer, PackerBNFMixin):
             if len(self._sorted_rect)==0:
                 break
 
-            pbin = self._new_open_bin()
+            pbin = self._new_open_bin(1, 1)
             while True:
                
                 best_rect = self._find_best_fit(pbin)

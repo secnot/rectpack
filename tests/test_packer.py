@@ -96,24 +96,16 @@ class TestPackerOnline(TestCase):
         self.assertEqual(p[-1].height, 55)
 
         # Rect 2
-        p.add_rect(40, 40)
+        p.add_rect(39, 39)
         with self.assertRaises(IndexError):
             p[3]
         with self.assertRaises(IndexError):
             p[-4]
-        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p), 2)
         self.assertEqual(p[0].width, 50)
         self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[1].width, 30)
-        self.assertEqual(p[1].height, 30)
-        self.assertEqual(p[2].width, 40)
-        self.assertEqual(p[2].height, 40)
-        self.assertEqual(p[-1].width, 40)
-        self.assertEqual(p[-1].height, 40)
-        self.assertEqual(p[-2].width, 30)
-        self.assertEqual(p[-2].height, 30)
-        self.assertEqual(p[-3].width, 50)
-        self.assertEqual(p[-3].height, 55)
+        self.assertEqual(p[1].width, 40)
+        self.assertEqual(p[1].height, 40)
 
     def test_getitem_bff(self):
         """Test more getitem and len"""
@@ -138,66 +130,49 @@ class TestPackerOnline(TestCase):
 
         # Rect 2
         p.add_rect(40, 40)
-        with self.assertRaises(IndexError):
-            p[3]
-        with self.assertRaises(IndexError):
-            p[-4]
-        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p), 2)
         self.assertEqual(p[0].width, 50)
         self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[1].width, 30)
-        self.assertEqual(p[1].height, 30)
-        self.assertEqual(p[2].width, 40)
-        self.assertEqual(p[2].height, 40)
-        self.assertEqual(p[-1].width, 40)
-        self.assertEqual(p[-1].height, 40)
-        self.assertEqual(p[-2].width, 30)
-        self.assertEqual(p[-2].height, 30)
-        self.assertEqual(p[-3].width, 50)
-        self.assertEqual(p[-3].height, 55)
+        self.assertEqual(p[1].width, 40)
+        self.assertEqual(p[1].height, 40)
+        self.assertEqual(p.rect_list()[1],
+                (1, 0, 0, 40, 40, None))
 
     def test_getitem_bbf(self):
         """And more getitem and len tests"""
         p = packer.PackerOnlineBFF(rotation=False)
-        p.add_bin(50, 55)
         p.add_bin(30, 30)
+        p.add_bin(50, 55)
         p.add_bin(40, 40)
         with self.assertRaises(IndexError):
             p[0]
 
         # Rect 1
         p.add_rect(50, 50)
-        with self.assertRaises(IndexError):
-            p[1]
-        with self.assertRaises(IndexError):
-            p[-2]
         self.assertEqual(len(p), 1)
         self.assertEqual(p[0].width, 50)
         self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[-1].width, 50)
-        self.assertEqual(p[-1].height, 55)
 
         # Rect 2
         p.add_rect(40, 40)
-        with self.assertRaises(IndexError):
-            p[3]
-        with self.assertRaises(IndexError):
-            p[-4]
-        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p), 2)
         self.assertEqual(p[0].width, 50)
         self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[1].width, 30)
-        self.assertEqual(p[1].height, 30)
-        self.assertEqual(p[2].width, 40)
-        self.assertEqual(p[2].height, 40)
-        self.assertEqual(p[-1].width, 40)
-        self.assertEqual(p[-1].height, 40)
-        self.assertEqual(p[-2].width, 30)
-        self.assertEqual(p[-2].height, 30)
-        self.assertEqual(p[-3].width, 50)
-        self.assertEqual(p[-3].height, 55)
+        self.assertEqual(p[1].width, 40)
+        self.assertEqual(p[1].height, 40)
 
+    def test_count(self):
+        p = packer.PackerOnlineBFF(rotation=False)
+        p.add_bin(100, 100, count=3)
 
+        # Rect 1
+        p.add_rect(90, 90)
+        p.add_rect(95, 95)
+        p.add_rect(96, 96)
+        p.add_rect(97, 97)
+
+        # Only used three bins available.
+        self.assertEqual(len(p), 3)
 
     
 class TestPackerOnlineBNF(TestCase):
@@ -207,16 +182,23 @@ class TestPackerOnlineBNF(TestCase):
         p.add_bin(30, 30)
         p.add_bin(40, 40)
         p.add_rect(40, 40)
-        self.assertEqual(p.rect_list()[0], (1, 0, 0, 40, 40, None))
+
+        # Only the bin where the rectangle fits was opened
+        self.assertEqual(p.rect_list()[0], (0, 0, 0, 40, 40, None))
 
     def test_rotation(self):
         p = packer.PackerOnlineBNF(rotation=False)
         p.add_bin(30, 10)
         p.add_bin(50, 10)
         p.add_rect(10, 30)
-        self.assertEqual(len(p.rect_list()), 0)
-        self.assertEqual(len(p), 2)
 
+        # rectangle didnt't fit in any of the bins with rotations was disabled
+        self.assertEqual(len(p.rect_list()), 0)
+
+        # And None of the bins was opened
+        self.assertEqual(len(p), 0)
+
+        # With rotation the rectangle is packed successfully
         p = packer.PackerOnlineBNF(rotation=True)
         p.add_bin(30, 10)
         p.add_bin(50, 10)
@@ -254,9 +236,10 @@ class TestPackerOnlineBFF(TestCase):
         p.add_rect(10, 10)
         p.add_rect(10, 10)
         self.assertEqual(len(p.rect_list()), 3)
-        self.assertTrue((0, 0, 0, 10, 10, None) in p.rect_list())
-        self.assertTrue((1, 0, 0, 90, 90, None) in p.rect_list())
-        self.assertTrue((0, 0, 10, 10, 10, None) in p.rect_list())
+        self.assertEqual(len(p), 1)
+        self.assertTrue((0, 0, 90, 10, 10, None) in p.rect_list())
+        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((0, 10, 90, 10, 10, None) in p.rect_list())
 
         # Test empty bins
         p = packer.PackerOnlineBFF(pack_algo=guillotine.GuillotineBafSas, 
@@ -267,8 +250,8 @@ class TestPackerOnlineBFF(TestCase):
 
         p.add_rect(90, 90)
         self.assertEqual(len(p.rect_list()), 1)
-        self.assertTrue((1, 0, 0, 90, 90, None) in p.rect_list())
-        self.assertEqual(len(p.bin_list()), 2)
+        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertEqual(len(p.bin_list()), 1)
 
 
 class TestPackerOnlineBBF(TestCase):
@@ -288,12 +271,13 @@ class TestPackerOnlineBBF(TestCase):
         p.add_rect(10, 10)
 
         self.assertEqual(len(p.rect_list()), 4)
-        self.assertEqual(len(p), 4)
-        self.assertTrue((2, 0, 0, 50, 30, None) in p.rect_list())
-        self.assertTrue((3, 0, 0, 50, 30, None) in p.rect_list())
-        self.assertTrue((3, 0, 30, 20, 20, None) in p.rect_list())
-        self.assertTrue((0, 0, 0, 10, 10, None) in p.rect_list())
-
+        self.assertEqual(len(p), 2)
+        self.assertTrue((0, 0, 0, 50, 30, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 50, 30, None) in p.rect_list())
+        self.assertTrue((1, 0, 30, 20, 20, None) in p.rect_list())
+        self.assertTrue((1, 20, 30, 10, 10, None) in p.rect_list())
+        self.assertEqual(p[0].width, 55)
+        self.assertEqual(p[0].height, 55)
 
 class TestPacker(TestCase):
 
@@ -410,8 +394,8 @@ class TestPacker(TestCase):
         p.add_rect(25, 25)
         p.pack()
 
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 25, 25, None))
-        self.assertEqual(p.rect_list()[1], (1, 0, 0, 30, 30, None))
+        self.assertEqual(p.rect_list()[0], (0, 0, 0, 30, 30, None))
+        self.assertEqual(p.rect_list()[1], (1, 0, 0, 25, 25, None))
 
     def test_rotation(self):
         """Test rotation is enabled by default and can be disabled"""
@@ -445,16 +429,17 @@ class TestPacker(TestCase):
         self.assertEqual(p.bin_list(), [])
 
         # Test packing using several bins
-        p = packer.PackerBFF()
+        p = packer.PackerBFF(rotation=False, sort_algo=packer.SORT_NONE)
         p.add_bin(20, 10)
         p.add_bin(50, 50)
-        p.add_rect(30, 30)
         p.add_rect(10, 20)
+        p.add_rect(41, 41) # Not enough space for this rectangle
         p.pack()
 
-        self.assertEqual(len(p.bin_list()), 2)
-        self.assertEqual(p.rect_list()[1], (1, 0, 0, 30, 30, None))
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 10, None))
+        self.assertEqual(len(p.bin_list()), 1)
+        self.assertEqual(p[0].width, 50)
+        self.assertEqual(p[0].height, 50)
+        self.assertEqual(p.rect_list()[0], (0, 0, 0, 10, 20, None))
 
         # Test empty bins not returned
         p = packer.PackerBFF()
@@ -473,7 +458,7 @@ class TestPacker(TestCase):
         p.add_bin(30, 30)
         p.add_rect(40, 50)
         p.pack()
-        self.assertEqual(len(p.bin_list()), 1)
+        self.assertEqual(len(p.bin_list()), 0) 
         self.assertEqual(len(p.rect_list()), 0)
 
         # Test state before calling pack
@@ -508,7 +493,7 @@ class TestPacker(TestCase):
 
     def test_repack(self):
         """Test can be repacked after adding a rectangle or bin"""
-        p = packer.PackerBFF(rotation=False)
+        p = packer.PackerBFF(rotation=False, sort_algo=packer.SORT_NONE)
         p.add_bin(50, 50)
         p.add_rect(20, 20)
         p.pack()
