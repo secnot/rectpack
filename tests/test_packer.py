@@ -73,9 +73,37 @@ class TestRectangleSort(TestCase):
 
 
 class TestPackerOnline(TestCase):
+    
+    def test_bin_iter(self):
+        # check iter only loops over closed and open bins (in that order)
+        p = packer.PackerOnlineBNF(rotation=False)
+        p.add_bin(50, 55)
+        p.add_bin(30, 30)
+        p.add_bin(5, 5)
+        p.add_bin(40, 40)
 
-    def test_getitem_bnf(self):
-        """Test getitem  and len"""
+        # No bins to iterate over
+        bins = list(iter(p))
+        self.assertEqual(len(bins), 0)
+
+        # One open bin to iterate
+        p.add_rect(50, 50)
+        bins = list(iter(p))
+        self.assertEqual(len(bins), 1)
+
+        # One closed and one open bin
+        p.add_rect(29, 29)
+        bins = list(iter(p))
+        self.assertEqual(len(bins), 2)
+        self.assertEqual(bins[0].width, 50) # Test closed bins are first
+
+        # Two closed bins, one skipped bin, and an open bin
+        p.add_rect(40, 40)
+        bins = list(iter(p))
+        self.assertEqual(len(bins), 3)
+
+    def test_getitem(self):
+        # check exception raised when bin doesn't exist
         p = packer.PackerOnlineBNF(rotation=False)
         p.add_bin(50, 55)
         p.add_bin(30, 30)
@@ -83,97 +111,80 @@ class TestPackerOnline(TestCase):
         with self.assertRaises(IndexError):
             p[0]
 
-        # Rect 1
+        # check with one open bin
         p.add_rect(50, 50)
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[0].width, 50)
+        self.assertEqual(p[0].height, 55)
+        self.assertEqual(p[0], p[-1])
         with self.assertRaises(IndexError):
             p[1]
         with self.assertRaises(IndexError):
             p[-2]
-        self.assertEqual(len(p), 1)
+
+        # one closed bin, one skiped, and one open bin
+        p.add_rect(39, 39)
         self.assertEqual(p[0].width, 50)
         self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[-1].width, 50)
-        self.assertEqual(p[-1].height, 55)
-
-        # Rect 2
-        p.add_rect(39, 39)
-        with self.assertRaises(IndexError):
-            p[3]
+        self.assertEqual(p[1].width, 40)
+        self.assertEqual(p[1].height, 40)
+        self.assertEqual(p[-1], p[1])
         with self.assertRaises(IndexError):
             p[-4]
-        self.assertEqual(len(p), 2)
-        self.assertEqual(p[0].width, 50)
-        self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[1].width, 40)
-        self.assertEqual(p[1].height, 40)
+        with self.assertRaises(IndexError):
+            p[2]
 
-    def test_getitem_bff(self):
-        """Test more getitem and len"""
-        p = packer.PackerOnlineBFF(rotation=False)
-        p.add_bin(50, 55)
+    def test_bin_order(self):
+        # check bins are packed in the order they were added
+        p = packer.PackerOnlineBNF(rotation=False)
+        p.add_bin(45, 45)
         p.add_bin(30, 30)
         p.add_bin(40, 40)
-        with self.assertRaises(IndexError):
-            p[0]
 
-        # Rect 1
-        p.add_rect(50, 50)
-        with self.assertRaises(IndexError):
-            p[1]
-        with self.assertRaises(IndexError):
-            p[-2]
-        self.assertEqual(len(p), 1)
-        self.assertEqual(p[0].width, 50)
-        self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[-1].width, 50)
-        self.assertEqual(p[-1].height, 55)
+        p.add_rect(20, 20)
+        self.assertEqual(p[0].width, 45)
+        self.assertEqual(p[0].height, 45)
 
-        # Rect 2
-        p.add_rect(40, 40)
-        self.assertEqual(len(p), 2)
-        self.assertEqual(p[0].width, 50)
-        self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[1].width, 40)
-        self.assertEqual(p[1].height, 40)
-        self.assertEqual(p.rect_list()[1],
-                (1, 0, 0, 40, 40, None))
+        p.add_rect(29, 29)
+        self.assertEqual(p[1].width, 30)
+        self.assertEqual(p[1].height, 30)
 
-    def test_getitem_bbf(self):
-        """And more getitem and len tests"""
-        p = packer.PackerOnlineBFF(rotation=False)
-        p.add_bin(30, 30)
-        p.add_bin(50, 55)
+        # check bins are added at the end of the queue, and used last
+        p.add_bin(39, 39)
+        p.add_rect(39, 39)
+        self.assertEqual(p[2].width, 40)
+        self.assertEqual(p[2].height, 40)
+
+    def test_len(self):
+        # check returns length of open+closed bins.
+        p = packer.PackerOnlineBNF()
+        p.add_bin(50, 50)
         p.add_bin(40, 40)
-        with self.assertRaises(IndexError):
-            p[0]
+        p.add_bin(60, 60)
+        self.assertEqual(len(p), 0)
 
-        # Rect 1
-        p.add_rect(50, 50)
-        self.assertEqual(len(p), 1)
-        self.assertEqual(p[0].width, 50)
-        self.assertEqual(p[0].height, 55)
-
-        # Rect 2
         p.add_rect(40, 40)
-        self.assertEqual(len(p), 2)
-        self.assertEqual(p[0].width, 50)
-        self.assertEqual(p[0].height, 55)
-        self.assertEqual(p[1].width, 40)
-        self.assertEqual(p[1].height, 40)
+        self.assertEqual(len(p), 1)
 
-    def test_count(self):
+        p.add_rect(41, 41)
+        self.assertEqual(len(p), 2)
+
+        p.add_rect(30, 30)
+        self.assertEqual(len(p), 3)
+
+    def test_bin_count(self):
+        # test adding several bins in one go using count
         p = packer.PackerOnlineBFF(rotation=False)
+
         p.add_bin(100, 100, count=3)
-
         p.add_rect(90, 90)
         p.add_rect(95, 95)
         p.add_rect(96, 96)
-        p.add_rect(97, 97)
-
+        p.add_rect(97, 97) # This one can't be packed
+        
         self.assertEqual(len(p), 3)
 
-
-        # Infinite bins
+        # test adding infinite bins
         p = packer.PackerOnlineBFF(rotation=False)
         p.add_bin(100, 100, count=float("inf"))
 
@@ -185,40 +196,38 @@ class TestPackerOnline(TestCase):
 
         self.assertEqual(len(p), 4)
 
-        # Several infinite bins
+        # check it is possible to pack into bins added after the infinite bin
         p = packer.PackerOnlineBFF(rotation=False)
         p.add_bin(5, 5, count=float("inf"))
         p.add_bin(100, 100, count=float("inf"))
-        p.add_bin(99, 99, count=2)
         p.add_bin(202, 202, count=1)
         p.add_bin(200, 200, count=float("inf"))
         
-        p.add_rect(15, 15)
-        p.add_rect(15, 15)
-        p.add_rect(90, 90)
-        p.add_rect(95, 95)
-        p.add_rect(96, 96)
-        p.add_rect(97, 97)
-        p.add_rect(200, 200)
+        p.add_rect(30, 30)
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[0].width, 100)
+        self.assertEqual(p[0].width, 100)
 
-        # Check only required bins are created
-        self.assertEqual(len(p), 6)
-        self.assertTrue(p[0].width == 100 and p[0].height==100)
-        self.assertTrue(p[1].width == 100 and p[1].height==100)
-        self.assertTrue(p[2].width == 100 and p[2].height==100)
-        self.assertTrue(p[3].width == 100 and p[3].height==100)
-        self.assertTrue(p[4].width == 100 and p[4].height==100)
-        self.assertTrue(p[5].width == 202 and p[5].height==202)
+        p.add_rect(4, 4) # Bin aready opened used before new one
+        self.assertEqual(len(p), 1)
+
+        p.add_rect(80, 80)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[1].width, 100)
+        self.assertEqual(p[1].height, 100)
+
+        p.add_rect(180, 180)
+        self.assertEqual(len(p), 3)
+        self.assertEqual(p[2].width, 202)
+        self.assertEqual(p[2].height, 202)
+
+        p.add_rect(180, 180)
+        self.assertEqual(len(p), 4)
+        self.assertEqual(p[3].width, 200)
+        self.assertEqual(p[3].height, 200)
       
-        # Check rectangles packed
-        self.assertEqual(len(p.rect_list()), 7)
-        self.assertTrue((0, 0, 0, 15, 15, None) in p.rect_list())
-        self.assertTrue((0, 15, 0, 15, 15, None) in p.rect_list())
-        self.assertTrue((1, 0, 0, 90, 90, None) in p.rect_list())
-        self.assertTrue((2, 0, 0, 95, 95, None) in p.rect_list())
-        self.assertTrue((3, 0, 0, 96, 96, None) in p.rect_list())
-        self.assertTrue((4, 0, 0, 97, 97, None) in p.rect_list())
-        self.assertTrue((5, 0, 0, 200, 200, None) in p.rect_list())
+        # Check rectangles were packed
+        self.assertEqual(len(p.rect_list()), 5)
         
     
 class TestPackerOnlineBNF(TestCase):
