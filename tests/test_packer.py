@@ -231,15 +231,55 @@ class TestPackerOnline(TestCase):
         
     
 class TestPackerOnlineBNF(TestCase):
-
-    def test_packing(self):
+ 
+    def test_bin_selection(self):
+        # Check as soon as a rectangle fails to be packed into an open bin
+        # the bin is closed, and it's packed into the next bin where it fits.
         p = packer.PackerOnlineBNF()
         p.add_bin(30, 30)
+        p.add_bin(10, 10)
         p.add_bin(40, 40)
-        p.add_rect(40, 40)
 
-        # Only the bin where the rectangle fits was opened
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 40, 40, None))
+        # this rectangle fits into first bin
+        p.add_rect(5, 5) 
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[0].width, 30)
+
+        # This rectangle doesn't fit into the open bin (first), so the bin
+        # is closed and rectangle packed into next one where it fits.
+        p.add_rect(29, 29)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[1].width, 40)
+
+        # Try to add a rectangle that would have fit into the first bin
+        # but it is packed
+        p.add_rect(10, 10)
+        self.assertEqual(len(p), 2)
+        last_rect = p.rect_list()[-1]
+        pbin, x, y, w, h, rid = last_rect
+        self.assertEqual(pbin, 1)
+
+
+    def test_infinite_bin(self):
+        # Test infinite bins are only tested once when a rectangle
+        # doesn't fit
+        p = packer.PackerOnlineBNF()
+        p.add_bin(50, 50, count=50)
+        p.add_bin(100, 100, count=float("inf"))
+
+        p.add_rect(90, 90)
+        self.assertEqual(len(p), 1)
+        p.add_rect(95, 95)
+        self.assertEqual(len(p), 2)
+
+        # check other bins
+        p.add_rect(40, 40)
+        self.assertEqual(len(p), 3)
+        self.assertEqual(p[2].width, 50)
+        
+        p.add_rect(45, 45)
+        self.assertEqual(len(p), 4)
+        self.assertEqual(p[3].width, 50)
 
     def test_rotation(self):
         p = packer.PackerOnlineBNF(rotation=False)
@@ -247,13 +287,13 @@ class TestPackerOnlineBNF(TestCase):
         p.add_bin(50, 10)
         p.add_rect(10, 30)
 
-        # rectangle didnt't fit in any of the bins with rotations was disabled
+        # rectangle didnt't fit in any of the bins when rotations was disabled
         self.assertEqual(len(p.rect_list()), 0)
 
-        # And None of the bins was opened
+        # Check no bin was opened
         self.assertEqual(len(p), 0)
 
-        # With rotation the rectangle is packed successfully
+        # With rotation the rectangle is successfully packer
         p = packer.PackerOnlineBNF(rotation=True)
         p.add_bin(30, 10)
         p.add_bin(50, 10)
@@ -265,54 +305,46 @@ class TestPackerOnlineBNF(TestCase):
 
 class TestPackerOnlineBFF(TestCase):
     
-    def test_packing(self):
+    def test_bin_selection(self):
+        # check rectangle is packed into the first open bin where it fits,
+        # if it can't be packed into any use the first available bin
         p = packer.PackerOnlineBFF(pack_algo=guillotine.GuillotineBafSas, 
                 rotation=False)
 
-        p.add_bin(20, 20)
+        p.add_bin(20, 20, count=2)
         p.add_bin(100, 100)
 
-        p.add_rect(10, 10)
+        # Packed into second bin
         p.add_rect(90, 90)
-        p.add_rect(10, 10)
-        self.assertEqual(len(p.rect_list()), 3)
-        self.assertTrue((0, 0, 0, 10, 10, None) in p.rect_list())
-        self.assertTrue((1, 0, 0, 90, 90, None) in p.rect_list())
-        self.assertTrue((0, 0, 10, 10, 10, None) in p.rect_list())
-
-        # Test bin order
-        p = packer.PackerOnlineBFF(pack_algo=guillotine.GuillotineBafSas, 
-                rotation=False)
-
-        p.add_bin(20, 20)
-        p.add_bin(100, 100)
-
-        p.add_rect(90, 90)
-        p.add_rect(10, 10)
-        p.add_rect(10, 10)
-        self.assertEqual(len(p.rect_list()), 3)
         self.assertEqual(len(p), 1)
-        self.assertTrue((0, 0, 90, 10, 10, None) in p.rect_list())
-        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
-        self.assertTrue((0, 10, 90, 10, 10, None) in p.rect_list())
+        self.assertEqual(p[0].width, 100)
 
-        # Test empty bins
-        p = packer.PackerOnlineBFF(pack_algo=guillotine.GuillotineBafSas, 
-                rotation=False)
+        # rectangles are packed into open bins whenever possible
+        p.add_rect(10, 10)
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p.rect_list()), 2)
 
-        p.add_bin(20, 20)
-        p.add_bin(100, 100)
+        p.add_rect(5, 5)
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p.rect_list()), 3)
 
-        p.add_rect(90, 90)
-        self.assertEqual(len(p.rect_list()), 1)
-        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
-        self.assertEqual(len(p.bin_list()), 1)
+        # rectangle doesn't fit, open new bin
+        p.add_rect(15, 15)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(len(p.rect_list()), 4)
+    
+        # if there are more than one possible bin select first one
+        p.add_rect(5, 5)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(len(p.rect_list()), 5)
+        self.assertTrue((0, 10, 90, 5, 5, None) in p.rect_list())
 
 
 class TestPackerOnlineBBF(TestCase):
 
-    def test_pack(self):
-        """Test bin with best fitness is selected"""
+    def test_bin_selection(self):
+        # Check rectangles are packed into the bin with the best fittness
+        # score. In this case the one wasting less area.
         p = packer.PackerOnlineBBF(pack_algo=guillotine.GuillotineBafSas, 
                 rotation=False)
       
@@ -320,19 +352,23 @@ class TestPackerOnlineBBF(TestCase):
         p.add_bin(15, 15)
         p.add_bin(55, 55)
         p.add_bin(50, 50)
+        
+        # First rectangle is packed into the first bin where it fits
         p.add_rect(50, 30)
-        p.add_rect(50, 30)
-        p.add_rect(20, 20)
-        p.add_rect(10, 10)
-
-        self.assertEqual(len(p.rect_list()), 4)
-        self.assertEqual(len(p), 2)
-        self.assertTrue((0, 0, 0, 50, 30, None) in p.rect_list())
-        self.assertTrue((1, 0, 0, 50, 30, None) in p.rect_list())
-        self.assertTrue((1, 0, 30, 20, 20, None) in p.rect_list())
-        self.assertTrue((1, 20, 30, 10, 10, None) in p.rect_list())
+        self.assertEqual(len(p), 1)
         self.assertEqual(p[0].width, 55)
-        self.assertEqual(p[0].height, 55)
+
+        # Another bin is opened when it doesn't fit into first one
+        p.add_rect(50, 30)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[1].width, 50)
+
+        # rectangle is placed into the bin with the best fitness, not
+        # the first one where it fits.
+        p.add_rect(20, 20)
+        self.assertEqual(len(p), 2)
+        self.assertTrue((1, 0, 30, 20, 20, None) in p.rect_list())
+
 
 class TestPacker(TestCase):
 
