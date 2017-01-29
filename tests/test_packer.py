@@ -339,6 +339,49 @@ class TestPackerOnlineBFF(TestCase):
         self.assertEqual(len(p.rect_list()), 5)
         self.assertTrue((0, 10, 90, 5, 5, None) in p.rect_list())
 
+    def test_count(self):
+        # check only the first bin is evaluated when there are more than one
+        p = packer.PackerOnlineBFF(rotation=False)
+        p.add_bin(30, 30, count=10)
+        p.add_bin(40, 40, count=float("inf"))
+        p.add_bin(100, 100, count = 2)
+
+        # packed into second bin, first bin left unopened
+        p.add_rect(40, 40)
+        self.assertEqual(len(p), 1) # check was packed
+        self.assertEqual(p[0].width, 40)
+
+        # first and second bins skipped
+        p.add_rect(45, 45)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[1].width, 100)
+
+        # packed into open bins before openning a new one
+        p.add_rect(45, 45)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(len(p.rect_list()), 3)
+
+        # Exhaust bin count
+        p.add_rect(70, 70)
+        self.assertEqual(len(p), 3)
+        self.assertEqual(p[2].width, 100)
+        self.assertEqual(len(p.rect_list()), 4)
+
+        p.add_rect(80, 80) # No bins where to pack this rectangle
+        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p.rect_list()), 4)
+     
+        # Fill open 100x100 bin
+        p.add_rect(45, 45)
+        p.add_rect(45, 45)
+        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p.rect_list()), 6)
+        
+        # try to exhaust infinite bin
+        for r in range(1000):
+            p.add_rect(39, 39)
+        self.assertEqual(len(p), 1003)
+
 
 class TestPackerOnlineBBF(TestCase):
 
@@ -368,6 +411,32 @@ class TestPackerOnlineBBF(TestCase):
         p.add_rect(20, 20)
         self.assertEqual(len(p), 2)
         self.assertTrue((1, 0, 30, 20, 20, None) in p.rect_list())
+
+    def test_count(self):
+        # test bins with more than one element are only check the first one
+        # to decide if a rectangle can be packed
+        p = packer.PackerOnlineBBF(rotation=False, pack_algo=guillotine.GuillotineBlsfMaxas)
+
+        p.add_bin(30, 30, count=2)
+        p.add_bin(90, 90, count=float("inf"))
+        p.add_bin(150, 30)
+
+        # Try infinite bin
+        for r in range(100):
+            p.add_rect(60, 60)
+        self.assertEqual(len(p), 100)
+
+        # pack into bin following infinite bin
+        p.add_rect(130, 30)
+        self.assertEqual(len(p), 101)
+        self.assertEqual(p[100].width, 150)
+
+        # check best fit is selected, not first bin
+        p.add_rect(20, 20)
+        self.assertEqual(len(p), 101)
+        for bin, x, y, width, height, rid in p.rect_list():
+            if width==20:
+                self.assertEqual(bin, 100)
 
 
 class TestPacker(TestCase):
