@@ -303,7 +303,7 @@ class Packer(PackerOnline):
     Rectangles aren't packed untils pack() is called
     """
 
-    def __init__(self, pack_algo=SkylineBlWm, sort_algo=SORT_LSIDE, 
+    def __init__(self, pack_algo=SkylineBlWm, sort_algo=SORT_NONE, 
             rotation=True):
         """
         """
