@@ -639,16 +639,38 @@ class TestPacker(TestCase):
         self.assertTrue((0, 20, 0, 10, 10, None) in p.rect_list())
         self.assertTrue((1, 0, 0, 70, 50, None) in p.rect_list())
 
+    def test_repack_rectangle_sort(self):
+        # check rectangles are sorted before a repack
+        p = packer.PackerBNF(rotation=False, sort_algo=packer.SORT_AREA)
+        p.add_bin(100, 100)
+        p.add_bin(90, 90)
+        p.add_bin(80, 80)
+
+        p.add_rect(70, 70)
+        p.add_rect(80, 80)
+        p.pack()
+
+        self.assertTrue((0, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 70, 70, None) in p.rect_list())
+
+        # add bigger rectangle and repack
+        p.add_rect(90, 90)
+        p.pack()
+        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
+
 
 class TestPackerBNF(TestCase):
     
-    def test_bin_closing(self):
+    def test_bin_seelection(self):
         """Test bins are closed after one failed packing attempt"""
         p = packer.PackerBNF(pack_algo=guillotine.GuillotineBafSas, 
                 sort_algo=packer.SORT_NONE, rotation=False)
-        p.add_bin(50, 50)
+        p.add_bin(50, 50, count=100)
         p.add_bin(100, 100)
-        p.add_bin(300, 300)
+        p.add_bin(300, 300, count=100)
+
         p.add_rect(40, 40)
         p.add_rect(90, 90)
         p.add_rect(5, 5)
@@ -656,164 +678,150 @@ class TestPackerBNF(TestCase):
         p.add_rect(10, 10)
         p.pack()
         
-        packing = [(0, 0, 0, 40, 40, None), 
-                (1, 0, 0, 90, 90, None), 
-                (1, 0, 90, 5, 5, None), 
-                (2, 0, 0, 20, 20, None),
-                (2, 0, 20, 10, 10, None)]
-        self.assertEqual(packing, p.rect_list())
- 
+        self.assertTrue((0, 0, 0, 40, 40, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((1, 0, 90, 5, 5, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 20, 20, None) in p.rect_list())
+        self.assertTrue((2, 0, 20, 10, 10, None) in p.rect_list())
+
+        self.assertEqual(len(p), 3)
+        self.assertEqual(p[0].width, 50)
+        self.assertEqual(p[1].width, 100)
+        self.assertEqual(p[2].width, 50)
+
     def test_repack(self):
-        """Test can be packed a second time"""
+        # Test can be packed a second time withou needing to add all 
+        # bin/rectangles again
         p = packer.PackerBNF(pack_algo=guillotine.GuillotineBafSas,
                 sort_algo=packer.SORT_NONE, rotation=False)
         p.add_bin(100, 100)
         p.add_rect(20, 20)
         p.pack()
         
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
+        self.assertTrue((0, 0, 0, 20, 20, None) in p.rect_list())
 
         # Add rectangles and repack
         p.add_rect(80, 80)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-        self.assertEqual(p.rect_list()[1], (0, 20, 0, 80, 80, None))
- 
-    def test_repack_sorted(self):
-        """Test can be packed a second time sorted"""
-        p = packer.PackerBNF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_LSIDE, rotation=False)
+        self.assertTrue((0, 0, 0, 20, 20, None) in p.rect_list())
+        self.assertTrue((0, 20, 0, 80, 80, None) in p.rect_list())
+
+    def test_repack_rectangle_sort(self):
+        # check rectangles are sorted before a repack
+        p = packer.PackerBNF(rotation=False, sort_algo=packer.SORT_AREA)
         p.add_bin(100, 100)
-        p.add_rect(20, 20)
-        p.pack()
-        
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
+        p.add_bin(90, 90)
+        p.add_bin(80, 80)
 
-        # Add rectangles and repack
+        p.add_rect(70, 70)
         p.add_rect(80, 80)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 80, 80, None))
-        self.assertEqual(p.rect_list()[1], (0, 0, 80, 20, 20, None))
 
+        self.assertTrue((0, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 70, 70, None) in p.rect_list())
 
-    
+        # add bigger rectangle and repack
+        p.add_rect(90, 90)
+        p.pack()
+        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
+
 
 class TestPackerBFF(TestCase):
+  
+    def test_bin_selection(self):
+        # check rectangle is packed into the first open bin where it fits,
+        # if it can't be packed into any use the first available bin
+        p = packer.PackerBFF(pack_algo=guillotine.GuillotineBafSas, 
+                rotation=False)
+        p.add_bin(20, 20, count=2)
+        p.add_bin(100, 100)
+
+        # Packed into second bin
+        p.add_rect(90, 90)
+        p.pack()
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[0].width, 100)
+
+        # rectangles are packed into open bins whenever possible
+        p.add_rect(10, 10)
+        p.pack()
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p.rect_list()), 2)
+
+        p.add_rect(5, 5)
+        p.pack()
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p.rect_list()), 3)
+
+        # rectangle doesn't fit, open new bin
+        p.add_rect(15, 15)
+        p.pack()
+        self.assertEqual(len(p), 2)
+        self.assertEqual(len(p.rect_list()), 4)
     
-    def test_first_packing(self):
-        """Test rectangles are packed into the first bin with enough space"""
-        p = packer.PackerBFF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_NONE, rotation=False)
-        p.add_bin(50, 50)
-        p.add_bin(50, 100)
-        p.add_rect(50, 20)
-        p.add_rect(50, 80)
-        p.add_rect(50, 20)
+        # if there are more than one possible bin select first one
+        p.add_rect(5, 5)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 50, 20, None))
-        self.assertEqual(p.rect_list()[1], (0, 0, 20, 50, 20, None))
-        self.assertEqual(p.rect_list()[2], (1, 0, 0, 50, 80, None))
-        self.assertEqual(p.bin_list()[0], (50, 50))
-        self.assertEqual(p.bin_list()[1], (50, 100))
-        
-        # Compare bin selection with BBF
-        p = packer.PackerBBF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_NONE, rotation=False)
-        p.add_bin(50, 50)
-        p.add_bin(50, 100)
-        p.add_rect(50, 20)
-        p.add_rect(50, 80)
-        p.add_rect(50, 20)
-        p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 50, 20, None))
-        self.assertEqual(p.rect_list()[1], (1, 0, 0, 50, 80, None))
-        self.assertEqual(p.rect_list()[2], (1, 0, 80, 50, 20, None))
-        self.assertEqual(p.bin_list()[0], (50, 50))
-        self.assertEqual(p.bin_list()[1], (50, 100))
- 
-    def test_repack(self):
-        """Test can be packed a second time"""
-        p = packer.PackerBFF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_NONE, rotation=False)
-        p.add_bin(100, 100)
-        p.add_rect(20, 20)
-        p.pack()
-        
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-
-        # Add rectangles and repack
-        p.add_rect(80, 80)
-        p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-        self.assertEqual(p.rect_list()[1], (0, 20, 0, 80, 80, None))
- 
-    def test_repack_sorted(self):
-        """Test can be packed a second time sorted"""
-        p = packer.PackerBFF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_LSIDE, rotation=False)
-        p.add_bin(100, 100)
-        p.add_rect(20, 20)
-        p.pack()
-        
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-
-        # Add rectangles and repack
-        p.add_rect(80, 80)
-        p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 80, 80, None))
-        self.assertEqual(p.rect_list()[1], (0, 0, 80, 20, 20, None))
-
+        self.assertEqual(len(p), 2)
+        self.assertEqual(len(p.rect_list()), 5)
+        self.assertTrue((0, 10, 90, 5, 5, None) in p.rect_list())
 
 
 
 class TestPackerBBF(TestCase):
     """BBF (Bin Best Fit): Pack rectangle in bin that gives best fitness"""
-    def test_best_fit(self):
-        p = packer.PackerBBF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_NONE, rotation=False)
+
+    def test_bin_selection(self):
+        # Check rectangles are packed into the bin with the best fittness
+        # score. In this case the one wasting less area.
+        p = packer.PackerBBF(pack_algo=guillotine.GuillotineBafSas, 
+                rotation=False)
+        p.add_bin(10, 10)
+        p.add_bin(15, 15)
+        p.add_bin(55, 55)
         p.add_bin(50, 50)
-        p.add_bin(50, 60)
-        p.add_rect(50, 20)
-        p.add_rect(50, 40)
-        p.add_rect(50, 20)
+        
+        # First rectangle is packed into the first bin where it fits
+        p.add_rect(50, 30)
         p.pack()
-        self.assertEqual(p.bin_list()[0], (50, 50))
-        self.assertEqual(p.bin_list()[1], (50, 60))
-        self.assertTrue((0, 0, 0, 50, 20, None) in p.rect_list())
-        self.assertTrue((1, 0, 0, 50, 40, None) in p.rect_list())
-        self.assertTrue((1, 0, 40, 50, 20, None) in p.rect_list())
-    
-    def test_repack(self):
-        """Test can be packed a second time"""
-        p = packer.PackerBBF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_NONE, rotation=False)
-        p.add_bin(100, 100)
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[0].width, 55)
+
+        # Another bin is opened when it doesn't fit into first one
+        p.add_rect(50, 30)
+        p.pack()
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[1].width, 50)
+
+        # rectangle is placed into the bin with the best fitness, not
+        # the first one where it fits.
         p.add_rect(20, 20)
         p.pack()
-        
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
+        self.assertEqual(len(p), 2)
+        self.assertTrue((1, 0, 30, 20, 20, None) in p.rect_list())
 
-        # Add rectangles and repack
-        p.add_rect(80, 80)
-        p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-        self.assertEqual(p.rect_list()[1], (0, 20, 0, 80, 80, None))
-
-    def test_repack_sorted(self):
-        """Test can be packed a second time sorted"""
-        p = packer.PackerBBF(pack_algo=guillotine.GuillotineBafSas,
-                sort_algo=packer.SORT_LSIDE, rotation=False)
+    def test_repack_rectangle_sort(self):
+        # check rectangles are sorted before a repack
+        p = packer.PackerBBF(rotation=False, sort_algo=packer.SORT_AREA)
         p.add_bin(100, 100)
-        p.add_rect(20, 20)
-        p.pack()
-        
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
+        p.add_bin(90, 90)
+        p.add_bin(80, 80)
 
-        # Add rectangles and repack
+        p.add_rect(70, 70)
         p.add_rect(80, 80)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 80, 80, None))
-        self.assertEqual(p.rect_list()[1], (0, 0, 80, 20, 20, None))
+
+        self.assertTrue((0, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 70, 70, None) in p.rect_list())
+
+        # add bigger rectangle and repack
+        p.add_rect(90, 90)
+        p.pack()
+        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
 
 
 
