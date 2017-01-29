@@ -378,9 +378,9 @@ class TestPackerOnlineBFF(TestCase):
         self.assertEqual(len(p.rect_list()), 6)
         
         # try to exhaust infinite bin
-        for r in range(1000):
+        for r in range(200):
             p.add_rect(39, 39)
-        self.assertEqual(len(p), 1003)
+        self.assertEqual(len(p), 203)
 
 
 class TestPackerOnlineBBF(TestCase):
@@ -459,22 +459,20 @@ class TestPacker(TestCase):
         
         # Test default sorting algo is unsorted
         p = packer.PackerBFF(pack_algo=guillotine.GuillotineBssfSas, rotation=False)
-        self.assertEqual(p._sort_algo, packer.SORT_LSIDE)
-        
-        #
-        p = packer.PackerBFF(pack_algo=guillotine.GuillotineBssfSas, 
-                sort_algo=packer.SORT_NONE, rotation=False)
-        p.add_bin(100, 100)
-        p.add_rect(1, 4)
-        p.add_rect(4, 4)
-        p.add_rect(1, 8)
+        p.add_bin(100, 100, count=20)
+       
+        p.add_rect(70, 70)
+        p.add_rect(90, 55)
+        p.add_rect(90, 90)
+        p.add_rect(55, 90)
+        p.add_rect(60, 60)
         p.pack()
-        self.assertEqual(p.rect_list()[0][3], 1) # width
-        self.assertEqual(p.rect_list()[0][4], 4) # height
-        self.assertEqual(p.rect_list()[1][3], 4) # width
-        self.assertEqual(p.rect_list()[1][4], 4) # height
-        self.assertEqual(p.rect_list()[2][3], 1) # width
-        self.assertEqual(p.rect_list()[2][4], 8) # height
+
+        self.assertTrue((0, 0, 0, 70, 70, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 90, 55, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((3, 0, 0, 55, 90, None) in p.rect_list())
+        self.assertTrue((4, 0, 0, 60, 60, None) in p.rect_list())
 
         # Test custom packing algo is stored and used
         p = packer.PackerBFF(pack_algo=guillotine.GuillotineBafSas)
@@ -484,111 +482,83 @@ class TestPacker(TestCase):
         for b in p:
             self.assertIsInstance(b, guillotine.GuillotineBafSas)
 
-        # Test custom sorting algo is stored and used
+        # check custom sorting algo is used
         p = packer.PackerBFF(sort_algo=packer.SORT_AREA, 
                 pack_algo=skyline.SkylineBl, rotation=False)
-        p.add_bin(100, 100)
-        p.add_rect(1, 1)
-        p.add_rect(4, 5)
-        p.add_rect(0.5, 0.1)
-        p.add_rect(2, 3)
+        p.add_bin(100, 100, count=300)
+        p.add_rect(60, 70)
+        p.add_rect(90, 80)
+        p.add_rect(60, 55)
+        p.add_rect(70, 90)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 4, 5, None))
-        self.assertEqual(p.rect_list()[1], (0, 4, 0, 2, 3, None))
-        self.assertEqual(p.rect_list()[2], (0, 6, 0, 1, 1, None))
-        self.assertEqual(p.rect_list()[3], (0, 7, 0, 0.5, 0.1, None))
+        self.assertTrue((0, 0, 0, 90, 80, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 70, 90, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 60, 70, None) in p.rect_list())
+        self.assertTrue((3, 0, 0, 60, 55, None) in p.rect_list())
 
-        # Test rotation is stored and passed to algos
+        # check rectangle rotation can be disabled
         p = packer.PackerBFF(sort_algo=packer.SORT_AREA, 
                 pack_algo=skyline.SkylineBl, rotation=False)
-        p.add_bin(100, 100)
-        p.add_rect(1, 20)
+        p.add_bin(90, 20)
+        p.add_rect(20, 90)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 1, 20, None))
+
+        self.assertEqual(len(p.rect_list()), 0)
 
         p = packer.PackerBFF(sort_algo=packer.SORT_AREA, 
                 pack_algo=skyline.SkylineBl, rotation=True)
-        p.add_bin(100, 100)
-        p.add_rect(1, 20)
+        p.add_bin(90, 20)
+        p.add_rect(20, 90)
         p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 1, None))
+
+        self.assertEqual(len(p.rect_list()), 1)
 
     def test_iter(self):
+        # check __iter__ only loops over open and closed bins
+        p = packer.PackerBNF()
+        p.add_bin(50, 50, count=2)
+        p.add_bin(100, 100, count=float("inf"))
+
+        p.add_rect(40, 40)
+        p.add_rect(91, 91)
+        p.add_rect(41, 41)
+        p.add_rect(10, 10) # can't be packed first bin because it's closed
+        p.pack()
+        bins = list(iter(p))
+        self.assertEqual(len(bins), 4)
+
+        # test the same with BFF mode (where bins aren't closed)
         p = packer.PackerBFF()
-        p.add_bin(100, 100)
-        p.add_rect(1, 1)
+        p.add_bin(50, 50, count=2)
+        p.add_bin(100, 100, count=float("inf"))
+
+        p.add_rect(40, 40)
+        p.add_rect(91, 91)
+        p.add_rect(41, 41)
+        p.add_rect(10, 10) # packed into first bin
         p.pack()
-        bins = [b for b in p]
-        self.assertEqual(len(bins), 1)
-
-    def test_rectangles_sorted(self):
-        """Test rectangles are sorted before packing"""
-        p = packer.PackerBFF(sort_algo=packer.SORT_AREA)
-        p.add_bin(30, 30)
-        p.add_rect(20, 20)
-        p.add_rect(25, 25)
-        p.pack()
-       
-        # Test the bigger rectangle is placed first
-        for b in p:
-            for r in b:
-                self.assertEqual(r, Rectangle(0, 0, 25, 25, None))
-
-    def test_multiple_bins(self):
-        """Test rectangles are placed into several bins"""
-        p = packer.PackerBFF(sort_algo=packer.SORT_NONE)
-        p.add_bin(30, 30)
-        p.add_bin(40, 40)
-        p.add_rect(25, 25)
-        p.add_rect(30, 30)
-        p.pack()
-
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 25, 25, None))
-        self.assertEqual(p.rect_list()[1], (1, 0, 0, 30, 30, None))
-
-        # Doesn't fit first bin
-        p = packer.PackerBFF(sort_algo=packer.SORT_NONE)
-        p.add_bin(25, 25)
-        p.add_bin(40, 40)
-        p.add_rect(30, 30)
-        p.add_rect(25, 25)
-        p.pack()
-
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 30, 30, None))
-        self.assertEqual(p.rect_list()[1], (1, 0, 0, 25, 25, None))
-
-    def test_rotation(self):
-        """Test rotation is enabled by default and can be disabled"""
-        p = packer.PackerBFF(sort_algo=packer.SORT_NONE)
-        p.add_bin(10, 50)
-        p.add_rect(50, 10)
-        p.pack()
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 10, 50, None))
-
-        p = packer.PackerBFF(rotation=False)
-        p.add_bin(10, 50)
-        p.add_rect(50, 10)
-        p.pack()
-        self.assertEqual(p.rect_list(), [])
+        bins = list(iter(p))
+        self.assertEqual(len(bins), 3)
 
     def test_pack(self):
 
-        # Without bins
+        # check packing without bins doens't rise errors
         p = packer.PackerBFF()
         p.add_rect(10, 10)
         p.pack()
 
         self.assertEqual(p.rect_list(), [])
         self.assertEqual(p.bin_list(), [])
+        self.assertEqual(list(iter(p)), [])
 
-        # Without rectangles
+        # no errors when there are no rectangles to pack
         p = packer.PackerBFF()
         p.add_bin(10, 10)
         p.pack()
         self.assertEqual(p.rect_list(), [])
         self.assertEqual(p.bin_list(), [])
 
-        # Test packing using several bins
+        # Test rectangles are packed into first available bin
         p = packer.PackerBFF(rotation=False, sort_algo=packer.SORT_NONE)
         p.add_bin(20, 10)
         p.add_bin(50, 50)
@@ -601,18 +571,6 @@ class TestPacker(TestCase):
         self.assertEqual(p[0].height, 50)
         self.assertEqual(p.rect_list()[0], (0, 0, 0, 10, 20, None))
 
-        # Test empty bins not returned
-        p = packer.PackerBFF()
-        p.add_rect(5, 5)
-        p.add_rect(6, 6)
-        p.add_bin(20, 20)
-        p.add_bin(30, 30)
-        p.add_bin(10, 10)
-        p.pack()
-
-        self.assertEqual(len(p.bin_list()), 1)
-        self.assertEqual(len(p.rect_list()), 2)
-
         # Test rectangles too big
         p = packer.PackerBFF()
         p.add_bin(30, 30)
@@ -621,7 +579,7 @@ class TestPacker(TestCase):
         self.assertEqual(len(p.bin_list()), 0) 
         self.assertEqual(len(p.rect_list()), 0)
 
-        # Test state before calling pack
+        # check nothing is packed before calling pack
         p = packer.PackerBFF()
         p.add_bin(10, 10)
         p.add_rect(3, 3)
@@ -652,7 +610,7 @@ class TestPacker(TestCase):
         self.assertEqual(p.bin_list()[1], (200, 200))
 
     def test_repack(self):
-        """Test can be repacked after adding a rectangle or bin"""
+        # Test it is possible to add more rentangles/bin and pack again
         p = packer.PackerBFF(rotation=False, sort_algo=packer.SORT_NONE)
         p.add_bin(50, 50)
         p.add_rect(20, 20)
@@ -660,7 +618,7 @@ class TestPacker(TestCase):
 
         self.assertEqual(len(p.rect_list()), 1)
         self.assertEqual(len(p.bin_list()), 1)
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
+        self.assertTrue((0, 0, 0, 20, 20, None) in p.rect_list())
         
         # Add more rectangles and re-pack
         p.add_rect(10, 10)
@@ -668,8 +626,8 @@ class TestPacker(TestCase):
         p.pack()
         self.assertEqual(len(p.rect_list()), 2)
         self.assertEqual(len(p.bin_list()), 1)
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-        self.assertEqual(p.rect_list()[1], (0, 20, 0, 10, 10, None))
+        self.assertTrue((0, 0, 0, 20, 20, None) in p.rect_list())
+        self.assertTrue((0, 20, 0, 10, 10, None) in p.rect_list())
 
         # Add more bins and re-pack
         p.add_bin(70, 70)
@@ -677,9 +635,9 @@ class TestPacker(TestCase):
         p.pack()
         self.assertEqual(len(p.rect_list()), 3)
         self.assertEqual(len(p.bin_list()), 2)
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 20, None))
-        self.assertEqual(p.rect_list()[1], (0, 20, 0, 10, 10, None))
-        self.assertEqual(p.rect_list()[2], (1, 0, 0, 70, 50, None))
+        self.assertTrue((0, 0, 0, 20, 20, None) in p.rect_list())
+        self.assertTrue((0, 20, 0, 10, 10, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 70, 50, None) in p.rect_list())
 
 
 class TestPackerBNF(TestCase):
