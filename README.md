@@ -119,10 +119,16 @@ gives you the best result.
 Testing
 =======
 
-Rectpack is thoroughly tested, run the test with the following command:
+Rectpack is thoroughly tested, you can run the tests with:
 
 ```bash
 python setup.py test
+```
+
+or
+
+```bash
+python -m unittest discover
 ```
 
 Float
