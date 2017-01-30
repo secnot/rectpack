@@ -385,8 +385,7 @@ class PackerOnlineBBF(PackerOnline, PackerBBFMixin):
     """
     pass
 
-
-class PackerGlobal(Packer, PackerBNFMixin):
+class PackerGlobalOLD(Packer, PackerBNFMixin):
     """
     GLOBAL: For each bin pack the rectangle with the best fitness.
     """
@@ -444,6 +443,127 @@ class PackerGlobal(Packer, PackerBNFMixin):
 
                 PackerBNFMixin.add_rect(self, *best_rect)
 
+
+
+
+class PackerGlobal(Packer, PackerBNFMixin):
+    """
+    GLOBAL: For each bin pack the rectangle with the best fitness.
+    """
+    first_item = operator.itemgetter(0)
+    
+    def __init__(self, pack_algo=SkylineBlWm, rotation=True):
+        """
+        """
+        super(PackerGlobal, self).__init__(pack_algo=pack_algo,
+            sort_algo=SORT_NONE, rotation=rotation)
+
+    def _find_best_fit(self, pbin):
+        """
+        Return best fitness rectangle from rectangles packing _sorted_rect list
+
+        Arguments:
+            pbin (PackingAlgorithm): Packing bin
+
+        Returns:
+            key of the rectangle with best fitness
+        """
+        fit = ((pbin.fitness(r[0], r[1]), k) for k, r in self._sorted_rect.items())
+        fit = (f for f in fit if f[0] is not None)
+        try:
+            _, rect = min(fit, key=self.first_item)
+            return rect
+        except ValueError:
+            return None
+
+
+    def _new_open_bin(self, remaining_rect):
+        """
+        Extract the next bin where at least one of the rectangles in
+        rem
+
+        Arguments:
+            remaining_rect (dict): rectangles not placed yet
+
+        Returns:
+            PackingAlgorithm: Initialized empty packing bin.
+            None: No bin big enough for the rectangle was found
+        """
+        factories_to_delete = set() #
+        new_bin = None
+
+        for key, binfac in self._empty_bins.items():
+
+            # Only return the new bin if at least one of the remaining 
+            # rectangles fit inside.
+            a_rectangle_fits = False
+            for _, rect in remaining_rect.items():
+                if binfac.fits_inside(rect[0], rect[1]):
+                    a_rectangle_fits = True
+                    break
+
+            if not a_rectangle_fits:
+                factories_to_delete.add(key)
+                continue
+           
+            # Create bin and add to open_bins
+            new_bin = binfac.new_bin()
+            if new_bin is None:
+                continue
+            self._open_bins.append(new_bin)
+
+            # If the factory was depleted mark for deletion
+            if binfac.is_empty():
+                factories_to_delete.add(key)
+       
+            break
+
+        # Delete marked factories
+        for f in factories_to_delete:
+            del self._empty_bins[f]
+
+        return new_bin 
+
+    def pack(self):
+       
+        self.reset()
+
+        if not self._is_everything_ready():
+            return
+        
+        # Add available bins to packer
+        for b in self._avail_bins:
+            super(Packer, self).add_bin(*b)
+    
+        # Store rectangles into dict for fast random access deletion
+        self._sorted_rect = collections.OrderedDict(
+                enumerate(self._sort_algo(self._avail_rect)))
+        
+        # For each bin pack the rectangle with lowest fitness until it is filled or
+        # the rectangles exhausted, then open the next bin where at least one rectangle 
+        # will fit and repeat the process until there aren't more rectangles or bins 
+        # available.
+        while len(self._sorted_rect) > 0:
+
+            # Find one bin where at least one of the remaining rectangles fit
+            pbin = self._new_open_bin(self._sorted_rect)
+            if pbin is None:
+                break
+
+            # Pack as many rectangles as possible into the open bin
+            while True:
+              
+                # Find 'fittest' rectangle
+                best_rect_key = self._find_best_fit(pbin)
+                if best_rect_key is None:
+                    closed_bin = self._open_bins.popleft()
+                    self._closed_bins.append(closed_bin)
+                    break # None of the remaining rectangles can be packed in this bin
+
+                best_rect = self._sorted_rect[best_rect_key]
+                del self._sorted_rect[best_rect_key]
+
+                PackerBNFMixin.add_rect(self, *best_rect)
 
 
 
