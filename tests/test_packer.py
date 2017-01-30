@@ -824,21 +824,20 @@ class TestPackerBBF(TestCase):
         self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
 
 
-
 class TestPackerGlobal(TestCase):
-
     """
     GLOBAL: For each bin pack the rectangle with the best fitness.
     """
     def test_limit_cases(self):
-        """Test pack works without rectangles and/or bins"""
+        #Test pack works without rectangles and/or bins"""
         p = packer.PackerGlobal()
-        p.add_bin(100, 100)
-        p.add_bin(20, 20)
+        p.add_bin(20, 20, count=1)
+        p.add_bin(100, 100, count=100)
         p.pack()
         self.assertEqual(len(p.rect_list()), 0)
         self.assertEqual(len(p.bin_list()), 0)
 
+        # check no exception is raised when there are no rectangles to pack
         p = packer.PackerGlobal()
         p.add_rect(30, 30)
         p.add_rect(20, 20)
@@ -846,12 +845,13 @@ class TestPackerGlobal(TestCase):
         self.assertEqual(len(p.rect_list()), 0)
         self.assertEqual(len(p.bin_list()), 0)
 
+        # neither bins nor rectangles
         p = packer.PackerGlobal()
         p.pack()
         self.assertEqual(len(p.rect_list()), 0)
         self.assertEqual(len(p.bin_list()), 0)
 
-    def test_best_selection(self):
+    def test_bin_selection(self):
         # Test rectangles with better fitness are placed first 
         p = packer.PackerGlobal(pack_algo=skyline.SkylineMwfl, 
                 rotation=False)
@@ -866,22 +866,46 @@ class TestPackerGlobal(TestCase):
         self.assertEqual(p.rect_list()[1], (0, 0, 10, 90, 30, None))
         self.assertEqual(p.rect_list()[2], (0, 0, 40, 100, 50, None))
         
-        # Test can handle more than one bin
+        # check can handle more than one bin
         p = packer.PackerGlobal(pack_algo=skyline.SkylineMwfl, 
                 rotation=False)
-        p.add_bin(50, 50)
+        p.add_bin(50, 50, count=3)
         p.add_bin(100, 100)
         p.add_rect(40, 40)
         p.add_rect(80, 80)
         p.add_rect(10, 10)
         p.pack()
-
+        
         self.assertEqual(len(p.rect_list()), 3)
         self.assertEqual(p.rect_list()[0], (0, 0, 0, 10, 10, None))
         self.assertEqual(p.rect_list()[1], (0, 10, 0, 40, 40, None))
         self.assertEqual(p.rect_list()[2], (1, 0, 0, 80, 80, None))
 
+    def test_add_bin_w_count(self):
+        # Test rectangles with more than one member
+        p = packer.PackerGlobal(pack_algo=skyline.SkylineMwfl, 
+                rotation=False)
+        p.add_bin(50, 50, count=30)
+        p.add_bin(100, 100)
 
+        p.add_rect(40, 21)
+        p.add_rect(100, 50)
+        p.add_rect(90, 80)
+        p.add_rect(50, 40)
+        p.add_rect(50, 50)
+
+        p.pack()
+
+        self.assertEqual(len(p.rect_list()), 4)
+        self.assertEqual(p[0].width, 50)
+        self.assertEqual(p[1].width, 50)
+        self.assertEqual(p[2].width, 50)
+        self.assertEqual(p[3].width, 100)
+        self.assertTrue((0, 0, 0, 40, 21, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 50, 40, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 50, 50, None) in p.rect_list()) 
+        self.assertTrue((3, 0, 0, 100, 50, None) in p.rect_list())
+      
     def test_fitness2(self):
         p = packer.PackerGlobal(pack_algo=guillotine.GuillotineBafSas, 
                 rotation=False)
@@ -901,27 +925,55 @@ class TestPackerGlobal(TestCase):
         """Test can be packed a second time"""
         p = packer.PackerGlobal(pack_algo=guillotine.GuillotineBafSas, 
                 rotation=False)
-        p.add_bin(100, 100)
-        p.add_rect(20, 10)
+        p.add_bin(100, 100, count=float("inf"))
+        p.add_rect(60, 60)
+        p.add_rect(55, 55)
         p.pack()
 
-        self.assertEqual(len(p.rect_list()), 1)
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 20, 10, None))
+        self.assertEqual(len(p), 2)
+        self.assertEqual(len(p.rect_list()), 2)
+        self.assertTrue((0, 0, 0, 60, 60, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 55, 55, None) in p.rect_list())
 
         # Add more rectangles and repack
         p.add_rect(80, 10)
         p.add_rect(80, 80)
         p.pack()
         
-        self.assertEqual(len(p.rect_list()), 3)
-        self.assertEqual(p.rect_list()[0], (0, 0, 0, 80, 80, None))
-        self.assertEqual(p.rect_list()[1], (0, 0, 80, 80, 10, None))
-        self.assertEqual(p.rect_list()[2], (0, 0, 90, 20, 10, None))
+        self.assertEqual(len(p.rect_list()), 4)
+        self.assertTrue((0, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((0, 0, 80, 80, 10, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 60, 60, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 55, 55, None) in p.rect_list())
+
+    def test_repack_rectangle_sort(self):
+        # check rectangles are sorted before a repack
+        # GuillotineBaf -> selects bin where less area is wasted 
+        p = packer.PackerGlobal(rotation=False, pack_algo=guillotine.GuillotineBafMaxas)
+        p.add_bin(100, 100)
+        p.add_bin(90, 90)
+        p.add_bin(80, 80)
+
+        p.add_rect(70, 70)
+        p.add_rect(80, 80)
+        p.pack()
+
+        self.assertTrue((0, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 70, 70, None) in p.rect_list())
+
+        # add bigger rectangle and repack
+        p.add_rect(90, 90)
+        p.pack()
+        self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
+        self.assertTrue((1, 0, 0, 80, 80, None) in p.rect_list())
+        self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
+
+
 
 class TestNewPacker(TestCase):
 
-    def test_class(self):
-        """Test newPacker returns correct Packer class"""
+    def test_default_options(self):
+        """Test newPacker default options"""
         # Test default options
         p = packer.newPacker()
         
@@ -939,7 +991,7 @@ class TestNewPacker(TestCase):
         self.assertEqual(len(p[0]), 1)
 
         # Default sortin algorithm SORT_LSIDE
-        self.assertEqual(p._sort_algo, packer.SORT_LSIDE)
+        self.assertEqual(p._sort_algo, packer.SORT_NONE)
 
     def test_rotation(self):
         """Test newPacker rotation argument"""
