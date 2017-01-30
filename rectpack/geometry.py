@@ -310,42 +310,42 @@ class Rectangle(object):
 
         return Rectangle(left, bottom, right-left, top-bottom)
 
-    def join(self, rect):
+    def join(self, other):
         """
         Try to join a rectangle to this one, if the result is also a rectangle 
-        the operation is successful and this rectangle is modified to the union.
+        and the operation is successful and this rectangle is modified to the union.
 
         Arguments:
-            rect (Rectangle): Rectangle to join
+            other (Rectangle): Rectangle to join
 
         Returns:
             bool: True when successfully joined, False otherwise
         """
-        if self.contains(rect):
+        if self.contains(other):
             return True
 
-        if rect.contains(self):
-            self.x = rect.x
-            self.y = rect.y
-            self.width = rect.width
-            self.height = rect.height
+        if other.contains(self):
+            self.x = other.x
+            self.y = other.y
+            self.width = other.width
+            self.height = other.height
             return True
 
-        if not self.intersects(rect, edges=True):
+        if not self.intersects(other, edges=True):
             return False
 
-        # Up/Down
-        if  self.left == rect.left and self.width == rect.width:
-            y_min = min(self.bottom, rect.bottom)
-            y_max = max(self.top, rect.top)  
+        # Other rectangle is Up/Down from this
+        if  self.left == other.left and self.width == other.width:
+            y_min = min(self.bottom, other.bottom)
+            y_max = max(self.top, other.top)  
             self.y = y_min
             self.height = y_max-y_min
             return True
 
-        # Right/Left
-        if  self.bottom == rect.bottom and self.height == rect.height:
-            x_min = min(self.left, rect.left)
-            x_max = max(self.right, rect.right)
+        # Other rectangle is Right/Left from this
+        if  self.bottom == other.bottom and self.height == other.height:
+            x_min = min(self.left, other.left)
+            x_max = max(self.right, other.right)
             self.x = x_min
             self.width = x_max-x_min
             return True
