@@ -520,7 +520,7 @@ PackingBin = Enum(["BNF", "BFF", "BBF", "Global"])
 def newPacker(mode=PackingMode.Offline, 
         bin_algo=PackingBin.BBF, 
         pack_algo=SkylineBlWm,
-        sort_algo=None, 
+        sort_algo=SORT_AREA, 
         rotation=True):
     """
     Packer factory helper function

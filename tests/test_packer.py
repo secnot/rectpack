@@ -991,7 +991,7 @@ class TestNewPacker(TestCase):
         self.assertEqual(len(p[0]), 1)
 
         # Default sortin algorithm SORT_LSIDE
-        self.assertEqual(p._sort_algo, packer.SORT_NONE)
+        self.assertEqual(p._sort_algo, packer.SORT_AREA)
 
     def test_rotation(self):
         """Test newPacker rotation argument"""
