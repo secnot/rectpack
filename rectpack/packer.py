@@ -385,66 +385,6 @@ class PackerOnlineBBF(PackerOnline, PackerBBFMixin):
     """
     pass
 
-class PackerGlobalOLD(Packer, PackerBNFMixin):
-    """
-    GLOBAL: For each bin pack the rectangle with the best fitness.
-    """
-    def __init__(self, pack_algo=SkylineBlWm, rotation=True):
-        """
-        """
-        super(PackerGlobal, self).__init__(pack_algo=pack_algo,
-            sort_algo=SORT_NONE, rotation=rotation)
-
-    def _find_best_fit(self, pbin):
-        """
-        Return rectangle with best fitness for the list from _sorted_rect list
-
-        Arguments:
-            pbin (PackingAlgorithm): Packing bin
-        """
-        fit = ((pbin.fitness(r[0], r[1]), r) for r in self._sorted_rect)
-        fit = (f for f in fit if f[0] is not None)
-        try:
-            _, rect = min(fit, key=operator.itemgetter(0))
-            return rect
-        except ValueError:
-            return None
-
-    def pack(self):
-       
-        self.reset()
-
-        if not self._is_everything_ready():
-            return
-        
-        # Add available bins to packer
-        for b in self._avail_bins:
-            super(Packer, self).add_bin(*b)
-    
-        #TODO: Use something faster for elem removal than a list 
-        self._sorted_rect = self._sort_algo(self._avail_rect)
-        
-        # Order rectangles using best fitness
-        for b in self._avail_bins:
-            
-            if len(self._sorted_rect)==0:
-                break
-
-            pbin = self._new_open_bin(1, 1)
-            while True:
-               
-                best_rect = self._find_best_fit(pbin)
-                if best_rect is None:
-                    closed_bin = self._open_bins.popleft()
-                    self._closed_bins.append(closed_bin)
-                    break
-
-                self._sorted_rect.remove(best_rect)
-
-                PackerBNFMixin.add_rect(self, *best_rect)
-
-
-
 
 class PackerGlobal(Packer, PackerBNFMixin):
     """
@@ -535,11 +475,11 @@ class PackerGlobal(Packer, PackerBNFMixin):
         for b in self._avail_bins:
             super(Packer, self).add_bin(*b)
     
-        # Store rectangles into dict for fast random access deletion
+        # Store rectangles into dict for fast deletion
         self._sorted_rect = collections.OrderedDict(
                 enumerate(self._sort_algo(self._avail_rect)))
         
-        # For each bin pack the rectangle with lowest fitness until it is filled or
+        # For each bin pack the rectangles with lowest fitness until it is filled or
         # the rectangles exhausted, then open the next bin where at least one rectangle 
         # will fit and repeat the process until there aren't more rectangles or bins 
         # available.
