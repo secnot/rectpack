@@ -1,20 +1,21 @@
 # rectpack
 
-Rectpack is a collection of algorithms for solving the 2D knapsack problem,
-or packing as much rectangles as possible into another one.
+Rectpack is a collection of heuristic algorithms for solving the 2D knapsack problem,
+also known as the bin packing problem. In essence packing a set of rectangles into the 
+smallest number of bins.
 
 ![alt tag](docs/maxrects.png)
 
 
 ## Installation
 
-Just dowload the package or clone the repository, Then install with:
+Download the package or clone the repository, and then install with:
 
 ```bash
 python setup.py install
 ```
 
-or using pypi:
+or use pypi:
 
 ```bash
 pip install rectpack
@@ -92,21 +93,24 @@ float2dec to convert float values to decimals (see float below)
 
 ## API
 
+A more detailed description of API calls:
+
 * class **newPacker**([, mode][, bin_algo][, pack_algo][, sort_algo][, rotation])  
   Return a new packer object
   * mode: Mode of operations
     * PackingMode.Offline: The set of rectangles is known beforehand, packing won't
     start until *pack()* is called.
-    * PackingMode.Online: The rectangles are unknown at beginning of the job, and
-    will be packed as soon as they are added through *add_rect()*.
+    * PackingMode.Online: The rectangles are unknown at the beginning of the job, and
+    will be packed as soon as they are added.
   * bin_algo: Bin selection heuristic
-    * PackingBin.BNF: (Bin Next Fit) If a rectangle doesn't fit into current bin
+    * PackingBin.BNF: (Bin Next Fit) If a rectangle doesn't fit into the current bin,
     close it and try next one.
     * PackingBin.BFF: (Bin First Fit) Pack rectangle into the first bin it fits (without closing)
     * PackingBin.BBF: (Bin Best Fit) Pack rectangle into the bin that gives best fitness.
-    * PackingBin.Global:  For each bin pack the rectangle with the best fitness.
+    * PackingBin.Global: For each bin pack the rectangle with the best fitness until it is full,
+    then continue with next bin.
   * pack_algo: One of the supported packing algorithms (see list below)
-  * sort_algo: Sort method used for 
+  * sort_algo: Rectangle sort order before packing (only for offline mode)
     * SORT_NONE: Rectangles left unsorted.
     * SORT_AREA: Sort by descending area.
     * SORT_PERI: Sort by descending perimeter.
@@ -114,14 +118,14 @@ float2dec to convert float values to decimals (see float below)
     * SORT_SSIDE: Sort by shortest side.
     * SORT_LSIDE: Sort by longest side.
     * SORT_RATIO: Sort by ration between sides.
-  * rotation: Enable or disable packing rectangle rotation.
+  * rotation: Enable or disable rectangle rotation.
 
 
 * packer.**add_bin**(width, height[, count])  
   Add empty bin or bins to a packer
   * width: Bin width
   * height: Bin height
-  * count: Number of bins to add, 1 by default. It is possible to create infinie bins
+  * count: Number of bins to add, 1 by default. It's possible to add infinie bins
   with *count=float("inf")*
 
 
@@ -133,17 +137,17 @@ float2dec to convert float values to decimals (see float below)
 
 
 * packer.**pack**():  
-  When in offline mode starts packing process.
+  Starts packing process (only for offline mode).
 
 
 * packer.**rect_list**():  
-  Returns the list of packed rectan represented by the tuple (b, x, y, w, h, rid)
-  * b: Index for the bin where the rectangle was packed
+  Returns the list of packed rectangles, each one represented by the tuple (b, x, y, w, h, rid) where:
+  * b: Index for the bin the rectangle was packed into
   * x: X coordinate for the rectangle bottom-left corner
   * y: Y coordinate for the rectangle bottom-left corner
   * w: Rectangle width
   * h: Rectangle height
-  * rid: User provided ir or None
+  * rid: User provided id or None
 
 
 ## Supported Algorithms
@@ -193,7 +197,7 @@ the different algorithms read [1].
 
 ## Testing
 
-Rectpack is thoroughly tested, you can run the tests with:
+Rectpack is thoroughly tested, run the tests with:
 
 ```bash
 python setup.py test
@@ -220,8 +224,7 @@ the rounded Decimal.
 	dec_rects = [(float2dec(r[0], 3), float2dec(r[1], 3)) for r in float_rects]
 
 	p = newPacker()
-
-	....
+    ...
 ```
 
 ## References
