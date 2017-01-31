@@ -1,4 +1,5 @@
 from .skyline import SkylineBlWm
+from .maxrects import MaxRectsBaf
 
 import operator
 import itertools
@@ -519,7 +520,7 @@ PackingBin = Enum(["BNF", "BFF", "BBF", "Global"])
 
 def newPacker(mode=PackingMode.Offline, 
         bin_algo=PackingBin.BBF, 
-        pack_algo=SkylineBlWm,
+        pack_algo=MaxRectsBaf,
         sort_algo=SORT_AREA, 
         rotation=True):
     """

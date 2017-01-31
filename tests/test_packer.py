@@ -2,6 +2,7 @@ from unittest import TestCase
 from rectpack.geometry import Rectangle
 import rectpack.skyline as skyline
 import rectpack.guillotine as guillotine
+import rectpack.maxrects as maxrects
 import rectpack.packer as packer
 
 
@@ -987,7 +988,7 @@ class TestNewPacker(TestCase):
         p.add_rect(100, 10)
         p.add_bin(10, 100)
         p.pack()
-        self.assertIsInstance(p[0], skyline.SkylineBlWm)
+        self.assertIsInstance(p[0], maxrects.MaxRectsBaf)
         self.assertEqual(len(p[0]), 1)
 
         # Default sortin algorithm SORT_LSIDE
