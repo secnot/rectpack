@@ -105,7 +105,7 @@ float2dec to convert float values to decimals (see float below)
     * PackingBin.BFF: (Bin First Fit) Pack rectangle into the first bin it fits (without closing)
     * PackingBin.BBF: (Bin Best Fit) Pack rectangle into the bin that gives best fitness.
     * PackingBin.Global:  For each bin pack the rectangle with the best fitness.
-  * pack_algo: One of the supported packing algorithms (see supported list below)
+  * pack_algo: One of the supported packing algorithms (see list below)
   * sort_algo: Sort method used for 
     * SORT_NONE: Rectangles left unsorted.
     * SORT_AREA: Sort by descending area.
@@ -136,62 +136,60 @@ float2dec to convert float values to decimals (see float below)
   When in offline mode starts packing process.
 
 
-* packer.**rect_list**()
+* packer.**rect_list**():  
+  Returns the list of packed rectan represented by the tuple (b, x, y, w, h, rid)
+  * b: Index for the bin where the rectangle was packed
+  * x: X coordinate for the rectangle bottom-left corner
+  * y: Y coordinate for the rectangle bottom-left corner
+  * w: Rectangle width
+  * h: Rectangle height
+  * rid: User provided ir or None
 
 
 ## Supported Algorithms
 
-This library implements three of the algorithms described in [1] an excellent
-survey of packing algorithms, Skyline, Maxrects, and Guillotine.
+This library implements three of the algorithms described in [1] Skyline, Maxrects, 
+and Guillotine, with the following variants:
 
-To select an specific algorithm for packing:
+* MaxRects  
+  * MaxRectsBl
+  * MaxRectsBssf
+  * MaxRectsBaf
+  * MaxRectsBlsf
 
-```python
-form rectpack import *
 
-pack = newPacker(pack_algo=MaxRectsBssf)
-```
+* Skyline  
+  * SkylineMwf
+  * SkylineMwfl
+  * SkylineBl
+  * SkylineBlWm
+  * SkylineMwfWm
+  * SkylineMwflWm
 
-The list of available algorithms is as follows:
 
-* MaxRects
-	* MaxRectsBl
-	* MaxRectsBssf
-	* MaxRectsBaf
-	* MaxRectsBlsf
+* Guillotine  
+  * GuillotineBssfSas
+  * GuillotineBssfLas
+  * GuillotineBssfSlas
+  * GuillotineBssfLlas
+  * GuillotineBssfMaxas
+  * GuillotineBssfMinas
+  * GuillotineBlsfSas
+  * GuillotineBlsfLas
+  * GuillotineBlsfSlas
+  * GuillotineBlsfLlas
+  * GuillotineBlsfMaxas
+  * GuillotineBlsfMinas
+  * GuillotineBafSas
+  * GuillotineBafLas
+  * GuillotineBafSlas
+  * GuillotineBafLlas
+  * GuillotineBafMaxas
+  * GuillotineBafMinas
 
-* Skyline
-	* SkylineMwf
-	* SkylineMwfl
-	* SkylineBl
-	* SkylineBlWm
-	* SkylineMwfWm
-	* SkylineMwflWm
-
-* Guillotine
-	* GuillotineBssfSas
-	* GuillotineBssfLas
-	* GuillotineBssfSlas
-	* GuillotineBssfLlas
-	* GuillotineBssfMaxas
-	* GuillotineBssfMinas
-	* GuillotineBlsfSas
-	* GuillotineBlsfLas
-	* GuillotineBlsfSlas
-	* GuillotineBlsfLlas
-	* GuillotineBlsfMaxas
-	* GuillotineBlsfMinas
-	* GuillotineBafSas
-	* GuillotineBafLas
-	* GuillotineBafSlas
-	* GuillotineBafLlas
-	* GuillotineBafMaxas
-	* GuillotineBafMinas
-
-The nomenclature used is the same as described in [1], if you don't want to read
-anything I recomend the default algorithm unles the number of rectangles is too
-big and the packing is slow, in that case change to the Guillotine that
-gives you the best result.
+I recommend to use the default algorithm unless the packing is too slow, in that 
+case switch to one of the Guillotine variants. If you want to learn more about
+the different algorithms read [1].
 
 ## Testing
 
