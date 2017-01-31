@@ -85,23 +85,58 @@ for rect in all_rects:
 # rid - User asigned rectangle id or None
 ```
 
-
-To avoid unintended collision caused by floating point rounding, ALL the dimmensions
-must be integers or decimals. If your data is floating point use float2dec to convert
-float values to decimals (see float below)
+Lastly all the dimmension (bins and rectangles) must be integers or decimals to avoid
+collisions caused by floating point rounding. If your data is floating point use 
+float2dec to convert float values to decimals (see float below)
 
 
 ## API
 
-* **newPacker**([, mode][, bin_algo][, pack_algo][, sort_algo][, rotation])
+* class **newPacker**([, mode][, bin_algo][, pack_algo][, sort_algo][, rotation])  
+  Return a new packer object
+  * mode: Mode of operations
+    * PackingMode.Offline: The set of rectangles is known beforehand, packing won't
+    start until *pack()* is called.
+    * PackingMode.Online: The rectangles are unknown at beginning of the job, and
+    will be packed as soon as they are added through *add_rect()*.
+  * bin_algo: Bin selection heuristic
+    * PackingBin.BNF: (Bin Next Fit) If a rectangle doesn't fit into current bin
+    close it and try next one.
+    * PackingBin.BFF: (Bin First Fit) Pack rectangle into the first bin it fits (without closing)
+    * PackingBin.BBF: (Bin Best Fit) Pack rectangle into the bin that gives best fitness.
+    * PackingBin.Global:  For each bin pack the rectangle with the best fitness.
+  * pack_algo: One of the supported packing algorithms (see supported list below)
+  * sort_algo: Sort method used for 
+    * SORT_NONE: Rectangles left unsorted.
+    * SORT_AREA: Sort by descending area.
+    * SORT_PERI: Sort by descending perimeter.
+    * SORT_DIFF: Sort by difference of rectangle sides.
+    * SORT_SSIDE: Sort by shortest side.
+    * SORT_LSIDE: Sort by longest side.
+    * SORT_RATIO: Sort by ration between sides.
+  * rotation: Enable or disable packing rectangle rotation.
 
-* **add_bin**(width, height)
 
-* **add_rect**(width, height[, rid])
+* packer.**add_bin**(width, height[, count])  
+  Add empty bin or bins to a packer
+  * width: Bin width
+  * height: Bin height
+  * count: Number of bins to add, 1 by default. It is possible to create infinie bins
+  with *count=float("inf")*
 
-* **pack**():
 
-* **rect_list**()
+* packer.**add_rect**(width, height[, rid])  
+  Add rectangle to packing queue
+  * width: Rectangle width
+  * height: Rectangle height
+  * rid: User assigned rectangle id
+
+
+* packer.**pack**():  
+  When in offline mode starts packing process.
+
+
+* packer.**rect_list**()
 
 
 ## Supported Algorithms
