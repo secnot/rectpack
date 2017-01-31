@@ -22,7 +22,7 @@ pip install rectpack
 
 ## Basic Usage
 
-Packing rectangles in a number of bins is very simple:
+Packing rectangles into a number of bins is very simple:
 
 ```python
 from rectpack import newPacker
@@ -32,7 +32,7 @@ bins = [(300, 450), (80, 40), (200, 150)]
 
 packer = newPacker()
 
-# Add the rectangles
+# Add the rectangles to packing queue
 for r in rectangles:
 	packer.add_rect(*r)
 
@@ -43,6 +43,7 @@ for b in bins:
 # Start packing
 packer.pack()
 ```
+
 Once the rectangles have been packed the results can be accessed in several ways:
 
 ```python
@@ -71,27 +72,23 @@ h = rect.height
 But in the majority of cases you will only need a rectangle list:
 
 ```python
-# Iterate through each bin and obtain the list of packed rectangles
-for bin in packer:
-	print(bin.width, bin.height) # Print bin dimmensions
-	for rect in bin.rect_list():
-		x, y, w, h, rid = rect
-		...
-
 # Full rectangle list
 all_rects = packer.rect_list()
 for rect in all_rects:
 	b, x, y, w, h, rid = rect
-	...
-```
-Where:
 
-* **b** - Bin index
-* **x** - Rectangle bottom-left corner x coordinate
-*	**y** - Rectangle bottom-left corner y coordinate
-*	**w** - Rectangle width
-*	**h** - Rectangle height
-*	**rid** - User asigned rectangle id or None
+# b - Bin index
+# x - Rectangle bottom-left corner x coordinate
+# y - Rectangle bottom-left corner y coordinate
+# w - Rectangle width
+# h - Rectangle height
+# rid - User asigned rectangle id or None
+```
+
+
+To avoid unintended collision caused by floating point rounding, ALL the dimmensions
+must be integers or decimals. If your data is floating point use float2dec to convert
+float values to decimals (see float below)
 
 
 ## API
@@ -106,12 +103,6 @@ Where:
 
 * **rect_list**()
 
-
-
-
-To avoid unintended collision caused by floating point rounding, ALL the dimmensions
-must be integers or decimals. If your data is floating point use float2dec to convert
-float values to decimals (see float below)
 
 ## Supported Algorithms
 
