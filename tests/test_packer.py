@@ -988,7 +988,7 @@ class TestNewPacker(TestCase):
         p.add_rect(100, 10)
         p.add_bin(10, 100)
         p.pack()
-        self.assertIsInstance(p[0], maxrects.MaxRectsBaf)
+        self.assertIsInstance(p[0], maxrects.MaxRectsBlsf)
         self.assertEqual(len(p[0]), 1)
 
         # Default sortin algorithm SORT_LSIDE
