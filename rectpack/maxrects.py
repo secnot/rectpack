@@ -5,6 +5,9 @@ import collections
 import operator
 
 
+first_item = operator.itemgetter(0)
+
+
 
 class MaxRects(PackingAlgorithm):
 
@@ -44,9 +47,11 @@ class MaxRects(PackingAlgorithm):
         if not self._max_rects:
             return None, None
 
+        # Normal rectangle
         fitn = ((self._rect_fitness(m, w, h), w, h, m) for m in self._max_rects 
                 if self._rect_fitness(m, w, h) is not None)
 
+        # Rotated rectangle
         fitr = ((self._rect_fitness(m, h, w), h, w, m) for m in self._max_rects 
                 if self._rect_fitness(m, h, w) is not None)
 
@@ -56,7 +61,7 @@ class MaxRects(PackingAlgorithm):
         fit = itertools.chain(fitn, fitr)
         
         try:
-            _, w, h, m = min(fit, key=operator.itemgetter(0))
+            _, w, h, m = min(fit, key=first_item)
         except ValueError:
             return None, None
 
@@ -114,16 +119,15 @@ class MaxRects(PackingAlgorithm):
         """
         Remove every maximal rectangle contained by another one.
         """
-        contained = collections.deque()
+        contained = set()
         for m1, m2 in itertools.combinations(self._max_rects, 2):
             if m1.contains(m2):
-                contained.append(m2)
+                contained.add(m2)
             elif m2.contains(m1):
-                contained.append(m1)
+                contained.add(m1)
         
         # Remove from max_rects
-        exclude = set(contained)
-        self._max_rects = [m for m in self._max_rects if m not in exclude]
+        self._max_rects = [m for m in self._max_rects if m not in contained]
 
     def fitness(self, width, height): 
         """
@@ -206,7 +210,7 @@ class MaxRectsBl(MaxRects):
         fit = itertools.chain(fitn, fitr)
         
         try:
-            _, _, w, h, m = min(fit, key=operator.itemgetter(0))
+            _, _, w, h, m = min(fit, key=first_item)
         except ValueError:
             return None, None
 

@@ -93,7 +93,7 @@ class PackingAlgorithm(object):
         """
         raise NotImplementedError
 
-    def get_rect_list(self):
+    def rect_list(self):
         """
         Returns a list with all rectangles placed into the surface.
         
