@@ -163,10 +163,10 @@ and Guillotine, with the following variants:
 
 
 * Skyline  
-  * SkylineMwf
-  * SkylineMwfl
   * SkylineBl
   * SkylineBlWm
+  * SkylineMwf
+  * SkylineMwfl
   * SkylineMwfWm
   * SkylineMwflWm
 
@@ -192,8 +192,8 @@ and Guillotine, with the following variants:
   * GuillotineBafMinas
 
 I recommend to use the default algorithm unless the packing is too slow, in that 
-case switch to one of the Guillotine variants for example *GuillotineBssfSas*.   
-If you want to learn more about the different algorithms read [1].
+case switch to one of the Guillotine variants for example *GuillotineBssfSas*. 
+You can learn more about the algorithms in [1].
 
 ## Testing
 
