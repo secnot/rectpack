@@ -230,7 +230,7 @@ class TestPackerOnline(TestCase):
         # Check rectangles were packed
         self.assertEqual(len(p.rect_list()), 5)
         
-    def test_extra_kwargs(self): 
+    def test_add_bin_extra_kwargs(self): 
         # Check add_bin kwargs don't shadow packer options
         p = packer.PackerOnlineBFF(rotation=False)
         p.add_bin(10, 100, count=3, rot=True, args='yes')
@@ -1002,7 +1002,7 @@ class TestPackerGlobal(TestCase):
         self.assertTrue((1, 0, 0, 80, 80, None) in p.rect_list())
         self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
       
-    def test_extra_kwargs(self): 
+    def test_add_bin_extra_kwargs(self): 
         # Check add_bin kwargs don't shadow packer options
         p = packer.PackerGlobal(rotation=False)
         p.add_bin(10, 100, count=3, rot=True, args='yes')
