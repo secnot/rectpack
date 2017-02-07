@@ -456,7 +456,7 @@ class TestPacker(TestCase):
         p.add_rect(1, 1)
         p.pack()
         for b in p:
-            self.assertIsInstance(b, skyline.SkylineBlWm)
+            self.assertIsInstance(b, maxrects.MaxRectsBssf)
         
         # Test default sorting algo is unsorted
         p = packer.PackerBFF(pack_algo=guillotine.GuillotineBssfSas, rotation=False)
@@ -988,7 +988,7 @@ class TestNewPacker(TestCase):
         p.add_rect(100, 10)
         p.add_bin(10, 100)
         p.pack()
-        self.assertIsInstance(p[0], maxrects.MaxRectsBlsf)
+        self.assertIsInstance(p[0], maxrects.MaxRectsBssf)
         self.assertEqual(len(p[0]), 1)
 
         # Default sortin algorithm SORT_LSIDE

@@ -1,6 +1,4 @@
-from .skyline import SkylineBlWm
-from .guillotine import GuillotineBssfSas
-from .maxrects import MaxRectsBlsf
+from .maxrects import MaxRectsBssf
 
 import operator
 import itertools
@@ -188,7 +186,7 @@ class PackerOnline(object):
     Rectangles are packed as soon are they are added
     """
 
-    def __init__(self, pack_algo=SkylineBlWm, rotation=True):
+    def __init__(self, pack_algo=MaxRectsBssf, rotation=True):
         """
         Arguments:
             pack_algo (PackingAlgorithm): What packing algo to use
@@ -305,7 +303,7 @@ class Packer(PackerOnline):
     Rectangles aren't packed untils pack() is called
     """
 
-    def __init__(self, pack_algo=SkylineBlWm, sort_algo=SORT_NONE, 
+    def __init__(self, pack_algo=MaxRectsBssf, sort_algo=SORT_NONE, 
             rotation=True):
         """
         """
@@ -367,34 +365,34 @@ class PackerBBF(Packer, PackerBBFMixin):
     """
     BBF (Bin Best Fit): Pack rectangle in bin that gives best fitness
     """
-    pass
+    pass 
 
 class PackerOnlineBNF(PackerOnline, PackerBNFMixin):
     """
     BNF Bin Next Fit Online variant
     """
-    pass
+    pass 
 
 class PackerOnlineBFF(PackerOnline, PackerBFFMixin):
-    """
+    """ 
     BFF Bin First Fit Online variant
     """
     pass
 
 class PackerOnlineBBF(PackerOnline, PackerBBFMixin):
-    """
+    """ 
     BBF Bin Best Fit Online variant
     """
     pass
 
 
 class PackerGlobal(Packer, PackerBNFMixin):
-    """
+    """ 
     GLOBAL: For each bin pack the rectangle with the best fitness.
     """
     first_item = operator.itemgetter(0)
     
-    def __init__(self, pack_algo=SkylineBlWm, rotation=True):
+    def __init__(self, pack_algo=MaxRectsBssf, rotation=True):
         """
         """
         super(PackerGlobal, self).__init__(pack_algo=pack_algo,
@@ -520,8 +518,8 @@ PackingBin = Enum(["BNF", "BFF", "BBF", "Global"])
 
 
 def newPacker(mode=PackingMode.Offline, 
-        bin_algo=PackingBin.BBF, 
-        pack_algo=MaxRectsBlsf,
+         bin_algo=PackingBin.BBF, 
+        pack_algo=MaxRectsBssf,
         sort_algo=SORT_AREA, 
         rotation=True):
     """
