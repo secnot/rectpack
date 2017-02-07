@@ -85,6 +85,8 @@ class TestWastedSpace(TestCase):
             (rectpack.PackingBin.BFF, "BFF"),
             (rectpack.PackingBin.BBF, "BBF"),
         ] 
+        self.sort_algo = rectpack.SORT_AREA
+        self.log=False
 
     @staticmethod
     def first_bin_wasted_space(packer):
@@ -112,16 +114,20 @@ class TestWastedSpace(TestCase):
     def test_offline_modes(self):
         for bin_algo, algo_name in self.bin_algos:
             for algo in self.algos:
-                packer = rectpack.newPacker(pack_algo=algo, mode=PackingMode.Offline, bin_algo=bin_algo)
+                packer = rectpack.newPacker(pack_algo=algo, 
+                        mode=PackingMode.Offline, 
+                        bin_algo=bin_algo,
+                        sort_algo=self.sort_algo)
                 self.setup_packer(packer, self.bins, self.rectangles)
                 time = self.packing_time(packer)
                 self.first_bin_wasted_space(packer)
                 wasted = self.first_bin_wasted_space(packer)
 
                 # Test wasted spaced threshold
-                """print("Offline {0} {1:<20s} {2:>10.3f}s {3:>10.3f}% {4:>10} bins".format(
-                    algo_name, algo.__name__, time, wasted, len(packer)))"""
-                #self.assertTrue(wasted<50)
+                if self.log:
+                    print("Offline {0} {1:<20s} {2:>10.3f}s {3:>10.3f}% {4:>10} bins".format(
+                        algo_name, algo.__name__, time, wasted, len(packer)))
+                self.assertTrue(wasted<50)
 
                 # Validate rectangle packing
                 for b in packer:
@@ -130,7 +136,10 @@ class TestWastedSpace(TestCase):
     def test_online_modes(self):
         for bin_algo, algo_name in self.bin_algos_online:
             for algo in self.algos:
-                packer = rectpack.newPacker(pack_algo=algo, mode=PackingMode.Online, bin_algo=bin_algo)
+                packer = rectpack.newPacker(pack_algo=algo, 
+                        mode=PackingMode.Online, 
+                        bin_algo=bin_algo,
+                        sort_algo=self.sort_algo)
                 start = timer()
                 self.setup_packer(packer, self.bins, self.rectangles)
                 end = timer()
@@ -139,9 +148,10 @@ class TestWastedSpace(TestCase):
                 wasted = self.first_bin_wasted_space(packer)
 
                 # Test wasted spaced threshold
-                """print("Online {0} {1:<20s} {2:>10.3f}s {3:>10.3f}% {4:>10} bins".format(
-                    algo_name, algo.__name__, time, wasted, len(packer)))"""
-                #self.assertTrue(wasted<90)
+                if self.log:
+                    print("Online {0} {1:<20s} {2:>10.3f}s {3:>10.3f}% {4:>10} bins".format(
+                        algo_name, algo.__name__, time, wasted, len(packer)))
+                self.assertTrue(wasted<90)
 
                 # Validate rectangle packing
                 for b in packer:
