@@ -230,7 +230,40 @@ class TestPackerOnline(TestCase):
         # Check rectangles were packed
         self.assertEqual(len(p.rect_list()), 5)
         
-    
+    def test_add_bin_extra_kwargs(self): 
+        # Check add_bin kwargs don't shadow packer options
+        p = packer.PackerOnlineBFF(rotation=False)
+        p.add_bin(10, 100, count=3, rot=True, args='yes')
+        p.add_rect(90, 9)
+        self.assertEqual(len(p), 0)
+        
+        # Check with more than one bin
+        p = packer.PackerOnlineBFF(rotation=True)
+        p.add_bin(10, 100, rot=True, args='yes', count=3)
+        p.add_rect(90, 9)
+        p.add_rect(90, 9)
+        p.add_rect(90, 9)
+        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p[0]), 1)
+        self.assertEqual(len(p[1]), 1) 
+        self.assertEqual(len(p[2]), 1)
+
+        # Custom Packing algorithm...
+        class CustomAlgo(maxrects.MaxRectsBssf):
+            def __init__(self, width, height, rot=True, *args, **kwargs):
+                self.extra_kwargs = kwargs
+                super().__init__(width=width, height=height, rot=rot,
+                                    *args, **kwargs)
+
+        p = packer.PackerOnlineBFF(pack_algo=CustomAlgo)
+        p.add_bin(100, 100, name='yes', count=2)
+        p.add_rect(90, 80)
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p[0]), 1)
+        self.assertTrue('name' in p[0].extra_kwargs)
+        self.assertFalse('count' in p[0].extra_kwargs)
+        
+
 class TestPackerOnlineBNF(TestCase):
  
     def test_bin_selection(self):
@@ -456,7 +489,7 @@ class TestPacker(TestCase):
         p.add_rect(1, 1)
         p.pack()
         for b in p:
-            self.assertIsInstance(b, skyline.SkylineBlWm)
+            self.assertIsInstance(b, maxrects.MaxRectsBssf)
         
         # Test default sorting algo is unsorted
         p = packer.PackerBFF(pack_algo=guillotine.GuillotineBssfSas, rotation=False)
@@ -968,6 +1001,43 @@ class TestPackerGlobal(TestCase):
         self.assertTrue((0, 0, 0, 90, 90, None) in p.rect_list())
         self.assertTrue((1, 0, 0, 80, 80, None) in p.rect_list())
         self.assertTrue((2, 0, 0, 70, 70, None) in p.rect_list())
+      
+    def test_add_bin_extra_kwargs(self): 
+        # Check add_bin kwargs don't shadow packer options
+        p = packer.PackerGlobal(rotation=False)
+        p.add_bin(10, 100, count=3, rot=True, args='yes')
+        p.add_rect(90, 9)
+        p.pack()
+        self.assertEqual(len(p), 0)
+        
+        # Check with more than one bin
+        p = packer.PackerGlobal(rotation=False)
+        p.add_bin(10, 100, rot=True, args='yes', count=3)
+        p.add_rect(9, 90)
+        p.add_rect(9, 90)
+        p.add_rect(9, 90)
+        p.pack()
+        self.assertEqual(len(p), 3)
+        self.assertEqual(len(p[0]), 1)
+        self.assertEqual(len(p[1]), 1) 
+        self.assertEqual(len(p[2]), 1)
+
+        # Custom Packing algorithm...
+        class CustomAlgo(maxrects.MaxRectsBssf):
+            def __init__(self, width, height, rot=True, *args, **kwargs):
+                self.extra_kwargs = kwargs
+                super().__init__(width=width, height=height, rot=rot,
+                                    *args, **kwargs)
+
+        p = packer.PackerGlobal(pack_algo=CustomAlgo)
+        p.add_bin(100, 100, name='yes', count=2)
+        p.add_rect(90, 80)
+        p.pack()
+        self.assertEqual(len(p), 1)
+        self.assertEqual(len(p[0]), 1)
+        self.assertTrue('name' in p[0].extra_kwargs)
+        self.assertFalse('count' in p[0].extra_kwargs)
+        
 
 
 
@@ -988,7 +1058,7 @@ class TestNewPacker(TestCase):
         p.add_rect(100, 10)
         p.add_bin(10, 100)
         p.pack()
-        self.assertIsInstance(p[0], maxrects.MaxRectsBlsf)
+        self.assertIsInstance(p[0], maxrects.MaxRectsBssf)
         self.assertEqual(len(p[0]), 1)
 
         # Default sortin algorithm SORT_LSIDE
