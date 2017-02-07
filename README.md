@@ -1,135 +1,218 @@
 # rectpack
 
-Rectpack is a collection of algorithms for solving the 2D knapsack problem,
-or packing as much rectangles as possible into another one.
+Rectpack is a collection of heuristic algorithms for solving the 2D knapsack problem,
+also known as the bin packing problem. In essence packing a set of rectangles into the 
+smallest number of bins.
 
 ![alt tag](docs/maxrects.png)
 
 
-Installation
-============
+## Installation
 
-Just dowload the package or clone the repository, Then install with:
+Download the package or clone the repository, and then install with:
 
 ```bash
 python setup.py install
 ```
 
-or using pypi
+or use pypi:
 
 ```bash
 pip install rectpack
 ```
 
-Basic Usage
-===========
+## Basic Usage
 
-Packing rectangles in a number of bins is very simple:
+Packing rectangles into a number of bins is very simple:
 
 ```python
 from rectpack import newPacker
 
-rectangles = [(100, 30), (40, 60), (30, 30), .....]
-bins = [(300, 450), (80, 40), ...]
+rectangles = [(100, 30), (40, 60), (30, 30),(70, 70), (100, 50), (30, 30)]
+bins = [(300, 450), (80, 40), (200, 150)]
 
 packer = newPacker()
 
-# Add all the rectangles to be packed
+# Add the rectangles to packing queue
 for r in rectangles:
 	packer.add_rect(*r)
 
-# Add bins where the rectangles will be placed
+# Add the bins where the rectangles will be placed
 for b in bins:
 	packer.add_bin(*b)
 
-# Do packing
+# Start packing
 packer.pack()
-
-# Iterate through each bin and obtain a list of rectangle positions
-# format [(x0, y0, w0, h0, rid0), (x1, y1, w1, h1, rid1), ...]
-#	x -> Lower-left corner x coordinate
-#	y -> Lower-left forner y coordinate
-#	w -> Width
-#	h -> Height
-#	rid -> User asigned id or None
-for bin in packer:
-	for rect in bin.get_rect_list()
-		# Do something with the rectangles
 ```
 
-To avoid unintended collision caused by floating point rounding, ALL the dimmensions 
-must be integers or decimals. If your data is floating point use float2dec to convert 
-float values to decimals (see float below)
-
-Algorithms
-==========
-
-This library implements three of the algorithms described in [1] an excellent
-survey of packing algorithms, Skyline, Maxrects, and Guillotine.
-
-To select an specific algorithm for packing:
+Once the rectangles have been packed the results can be accessed in several ways:
 
 ```python
-form rectpack import *
+# Obtain number of bins used for packing
+nbins = len(packer)
 
-pack = newPacker(pack_algo=MaxRectsBssf)
+# Index first bin
+abin = packer[0]
+
+# Bin dimmensions (bins can be reordered during packing)
+width, height = abin.width, abin.height
+
+# Number of rectangles packed into first bin
+nrect = len(packer[0])
+
+# Second bin first rectangle
+rect = packer[1][0]
+
+# rect is a Rectangle object
+x = rect.x # rectangle bottom-left x coordinate
+y = rect.y # rectangle bottom-left y coordinate
+w = rect.width
+h = rect.height
 ```
 
-The list of available algorithms is as follows:
+But in the majority of cases you will only need a rectangle list:
 
-* MaxRects
-	* MaxRectsBl
-	* MaxRectsBssf
-	* MaxRectsBaf
-	* MaxRectsBlsf
+```python
+# Full rectangle list
+all_rects = packer.rect_list()
+for rect in all_rects:
+	b, x, y, w, h, rid = rect
 
-* Skyline
-	* SkylineMwf
-	* SkylineMwfl
-	* SkylineBl
-	* SkylineBlWm
-	* SkylineMwfWm
-	* SkylineMwflWm
+# b - Bin index
+# x - Rectangle bottom-left corner x coordinate
+# y - Rectangle bottom-left corner y coordinate
+# w - Rectangle width
+# h - Rectangle height
+# rid - User asigned rectangle id or None
+```
 
-* Guillotine
-	* GuillotineBssfSas
-	* GuillotineBssfLas
-	* GuillotineBssfSlas
-	* GuillotineBssfLlas
-	* GuillotineBssfMaxas
-	* GuillotineBssfMinas
-	* GuillotineBlsfSas
-	* GuillotineBlsfLas
-	* GuillotineBlsfSlas
-	* GuillotineBlsfLlas
-	* GuillotineBlsfMaxas
-	* GuillotineBlsfMinas
-	* GuillotineBafSas
-	* GuillotineBafLas
-	* GuillotineBafSlas
-	* GuillotineBafLlas
-	* GuillotineBafMaxas
-	* GuillotineBafMinas
+Lastly all the dimmension (bins and rectangles) must be integers or decimals to avoid
+collisions caused by floating point rounding. If your data is floating point use 
+float2dec to convert float values to decimals (see float below)
 
-The nomenclature used is the same as described in [1], if you don't want to read
-anything I recomend the default algorithm unles the number of rectangles is too
-big and the packing is slow, in that case change to the Guillotine that
-gives you the best result.
 
-Testing
-=======
+## API
 
-Rectpack is thoroughly tested, run the test with the following command:
+A more detailed description of API calls:
+
+* class **newPacker**([, mode][, bin_algo][, pack_algo][, sort_algo][, rotation])  
+  Return a new packer object
+  * mode: Mode of operations
+    * PackingMode.Offline: The set of rectangles is known beforehand, packing won't
+    start until *pack()* is called.
+    * PackingMode.Online: The rectangles are unknown at the beginning of the job, and
+    will be packed as soon as they are added.
+  * bin_algo: Bin selection heuristic
+    * PackingBin.BNF: (Bin Next Fit) If a rectangle doesn't fit into the current bin,
+    close it and try next one.
+    * PackingBin.BFF: (Bin First Fit) Pack rectangle into the first bin it fits (without closing)
+    * PackingBin.BBF: (Bin Best Fit) Pack rectangle into the bin that gives best fitness.
+    * PackingBin.Global: For each bin pack the rectangle with the best fitness until it is full,
+    then continue with next bin.
+  * pack_algo: One of the supported packing algorithms (see list below)
+  * sort_algo: Rectangle sort order before packing (only for offline mode)
+    * SORT_NONE: Rectangles left unsorted.
+    * SORT_AREA: Sort by descending area.
+    * SORT_PERI: Sort by descending perimeter.
+    * SORT_DIFF: Sort by difference of rectangle sides.
+    * SORT_SSIDE: Sort by shortest side.
+    * SORT_LSIDE: Sort by longest side.
+    * SORT_RATIO: Sort by ration between sides.
+  * rotation: Enable or disable rectangle rotation.
+
+
+* packer.**add_bin**(width, height[, count])  
+  Add empty bin or bins to a packer
+  * width: Bin width
+  * height: Bin height
+  * count: Number of bins to add, 1 by default. It's possible to add infinie bins
+  with *count=float("inf")*
+
+
+* packer.**add_rect**(width, height[, rid])  
+  Add rectangle to packing queue
+  * width: Rectangle width
+  * height: Rectangle height
+  * rid: User assigned rectangle id
+
+
+* packer.**pack**():  
+  Starts packing process (only for offline mode).
+
+
+* packer.**rect_list**():  
+  Returns the list of packed rectangles, each one represented by the tuple (b, x, y, w, h, rid) where:
+  * b: Index for the bin the rectangle was packed into
+  * x: X coordinate for the rectangle bottom-left corner
+  * y: Y coordinate for the rectangle bottom-left corner
+  * w: Rectangle width
+  * h: Rectangle height
+  * rid: User provided id or None
+
+
+## Supported Algorithms
+
+This library implements three of the algorithms described in [1] Skyline, Maxrects, 
+and Guillotine, with the following variants:
+
+* MaxRects  
+  * MaxRectsBl
+  * MaxRectsBssf
+  * MaxRectsBaf
+  * MaxRectsBlsf
+
+
+* Skyline  
+  * SkylineBl
+  * SkylineBlWm
+  * SkylineMwf
+  * SkylineMwfl
+  * SkylineMwfWm
+  * SkylineMwflWm
+
+
+* Guillotine  
+  * GuillotineBssfSas
+  * GuillotineBssfLas
+  * GuillotineBssfSlas
+  * GuillotineBssfLlas
+  * GuillotineBssfMaxas
+  * GuillotineBssfMinas
+  * GuillotineBlsfSas
+  * GuillotineBlsfLas
+  * GuillotineBlsfSlas
+  * GuillotineBlsfLlas
+  * GuillotineBlsfMaxas
+  * GuillotineBlsfMinas
+  * GuillotineBafSas
+  * GuillotineBafLas
+  * GuillotineBafSlas
+  * GuillotineBafLlas
+  * GuillotineBafMaxas
+  * GuillotineBafMinas
+
+I recommend to use the default algorithm unless the packing is too slow, in that 
+case switch to one of the Guillotine variants for example *GuillotineBssfSas*. 
+You can learn more about the algorithms in [1].
+
+## Testing
+
+Rectpack is thoroughly tested, run the tests with:
 
 ```bash
 python setup.py test
 ```
 
-Float
-=====
+or
+
+```bash
+python -m unittest discover
+```
+
+## Float
 
 If you need to use floats just convert them to fixed-point using a Decimal type,
-be carefull rounding up so the actual rectangle size is always smaller than 
+be carefull rounding up so the actual rectangle size is always smaller than
 the conversion. Rectpack provides helper funcion **float2dec** for this task,
 it accepts a number and the number of decimals to round to, and returns
 the rounded Decimal.
@@ -137,16 +220,14 @@ the rounded Decimal.
 ```python
 	from rectpack import float2dec, newPacker
 
-	float_rects = [...] 
+	float_rects = [...]
 	dec_rects = [(float2dec(r[0], 3), float2dec(r[1], 3)) for r in float_rects]
-				
+
 	p = newPacker()
-	
-	....
+    ...
 ```
 
-References
-==========
+## References
 
 [1] Jukka Jylang - A Thousand Ways to Pack the Bin - A Practical Approach to Two-Dimensional
 Rectangle Bin Packing (2010)
