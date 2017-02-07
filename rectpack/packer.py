@@ -320,8 +320,8 @@ class Packer(PackerOnline):
         # Aux vars used during packing
         self._sorted_rect = []
 
-    def add_bin(self, width, height, count=1):
-        self._avail_bins.append((width, height, count))
+    def add_bin(self, width, height, count=1, **kwargs):
+        self._avail_bins.append((width, height, count, kwargs))
 
     def add_rect(self, width, height, rid=None):
         self._avail_rect.append((width, height, rid))
@@ -339,7 +339,7 @@ class Packer(PackerOnline):
 
         # Add available bins to packer
         for b in self._avail_bins:
-            super(Packer, self).add_bin(*b)
+            super(Packer, self).add_bin(*b[:-1], **b[-1])
 
         # If enabled sort rectangles
         self._sorted_rect = self._sort_algo(self._avail_rect)
@@ -475,7 +475,7 @@ class PackerGlobal(Packer, PackerBNFMixin):
         
         # Add available bins to packer
         for b in self._avail_bins:
-            super(Packer, self).add_bin(*b)
+            super(Packer, self).add_bin(*b[:-1], **b[-1])
     
         # Store rectangles into dict for fast deletion
         self._sorted_rect = collections.OrderedDict(
