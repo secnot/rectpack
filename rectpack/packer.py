@@ -1,6 +1,4 @@
-from .skyline import SkylineBlWm
-from .guillotine import GuillotineBssfSas
-from .maxrects import MaxRectsBlsf
+from .maxrects import MaxRectsBssf
 
 import operator
 import itertools
@@ -188,7 +186,7 @@ class PackerOnline(object):
     Rectangles are packed as soon are they are added
     """
 
-    def __init__(self, pack_algo=SkylineBlWm, rotation=True):
+    def __init__(self, pack_algo=MaxRectsBssf, rotation=True):
         """
         Arguments:
             pack_algo (PackingAlgorithm): What packing algo to use
@@ -305,7 +303,7 @@ class Packer(PackerOnline):
     Rectangles aren't packed untils pack() is called
     """
 
-    def __init__(self, pack_algo=SkylineBlWm, sort_algo=SORT_NONE, 
+    def __init__(self, pack_algo=MaxRectsBssf, sort_algo=SORT_NONE, 
             rotation=True):
         """
         """
@@ -320,8 +318,8 @@ class Packer(PackerOnline):
         # Aux vars used during packing
         self._sorted_rect = []
 
-    def add_bin(self, width, height, count=1):
-        self._avail_bins.append((width, height, count))
+    def add_bin(self, width, height, count=1, **kwargs):
+        self._avail_bins.append((width, height, count, kwargs))
 
     def add_rect(self, width, height, rid=None):
         self._avail_rect.append((width, height, rid))
@@ -339,7 +337,8 @@ class Packer(PackerOnline):
 
         # Add available bins to packer
         for b in self._avail_bins:
-            super(Packer, self).add_bin(*b)
+            width, height, count, extra_kwargs = b
+            super(Packer, self).add_bin(width, height, count, **extra_kwargs)
 
         # If enabled sort rectangles
         self._sorted_rect = self._sort_algo(self._avail_rect)
@@ -367,34 +366,34 @@ class PackerBBF(Packer, PackerBBFMixin):
     """
     BBF (Bin Best Fit): Pack rectangle in bin that gives best fitness
     """
-    pass
+    pass 
 
 class PackerOnlineBNF(PackerOnline, PackerBNFMixin):
     """
     BNF Bin Next Fit Online variant
     """
-    pass
+    pass 
 
 class PackerOnlineBFF(PackerOnline, PackerBFFMixin):
-    """
+    """ 
     BFF Bin First Fit Online variant
     """
     pass
 
 class PackerOnlineBBF(PackerOnline, PackerBBFMixin):
-    """
+    """ 
     BBF Bin Best Fit Online variant
     """
     pass
 
 
 class PackerGlobal(Packer, PackerBNFMixin):
-    """
+    """ 
     GLOBAL: For each bin pack the rectangle with the best fitness.
     """
     first_item = operator.itemgetter(0)
     
-    def __init__(self, pack_algo=SkylineBlWm, rotation=True):
+    def __init__(self, pack_algo=MaxRectsBssf, rotation=True):
         """
         """
         super(PackerGlobal, self).__init__(pack_algo=pack_algo,
@@ -475,7 +474,8 @@ class PackerGlobal(Packer, PackerBNFMixin):
         
         # Add available bins to packer
         for b in self._avail_bins:
-            super(Packer, self).add_bin(*b)
+            width, height, count, extra_kwargs = b
+            super(Packer, self).add_bin(width, height, count, **extra_kwargs)
     
         # Store rectangles into dict for fast deletion
         self._sorted_rect = collections.OrderedDict(
@@ -520,8 +520,8 @@ PackingBin = Enum(["BNF", "BFF", "BBF", "Global"])
 
 
 def newPacker(mode=PackingMode.Offline, 
-        bin_algo=PackingBin.BBF, 
-        pack_algo=MaxRectsBlsf,
+         bin_algo=PackingBin.BBF, 
+        pack_algo=MaxRectsBssf,
         sort_algo=SORT_AREA, 
         rotation=True):
     """
