@@ -59,6 +59,8 @@ class BinFactory(object):
         self._algo_kwargs = kwargs
         self._algo_args = args
         self._ref_bin = None # Reference bin used to calculate fitness
+        
+        self._bid = kwargs.get("bid", None)
 
     def _create_bin(self):
         return self._pack_algo(self._width, self._height, *self._algo_args, **self._algo_kwargs)

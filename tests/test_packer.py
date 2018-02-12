@@ -1063,7 +1063,7 @@ class TestNewPacker(TestCase):
 
         # Default sortin algorithm SORT_LSIDE
         self.assertEqual(p._sort_algo, packer.SORT_AREA)
-
+        
     def test_rotation(self):
         """Test newPacker rotation argument"""
         p = packer.newPacker(rotation=False) 
@@ -1137,3 +1137,84 @@ class TestNewPacker(TestCase):
         p = packer.newPacker(mode=packer.PackingMode.Online,
                 bin_algo=packer.PackingBin.BFF, 
                 sort_algo=packer.SORT_RATIO)
+
+    def test_bin_id(self):
+        """Test correct bin id is assigned to each bin"""
+
+        # width, height, count, bid
+        bins   = [(100, 50, 1, "first"), (50, 50, 1, "second"), (200, 200, 10, "many")]
+        binIdx = {(b[0], b[1]): b[3] for b in bins} 
+        rects = [(199, 199), (100, 40), (40, 40), (20, 20), (180, 179)]
+
+        p = packer.newPacker(mode=packer.PackingMode.Offline,
+                bin_algo=packer.PackingBin.BFF)
+        
+        for b in bins:
+            p.add_bin(b[0], b[1], count=b[2], bid=b[3])
+        
+        for r in rects:
+            p.add_rect(r[0], r[1])
+
+        p.pack()
+
+        # verify bin ids correctly assigned
+        for abin in p:
+            self.assertEqual(binIdx[(abin.width, abin.height)], abin.bid)
+ 
+    def test_bin_default_id(self):
+        """Test default bin id is None"""
+        bins   = [(100, 50, 1), (50, 50, 1), (200, 200, 10)]
+        rects = [(199, 199), (100, 40), (40, 40), (20, 20), (180, 179)]
+
+        p = packer.newPacker(mode=packer.PackingMode.Offline,
+                bin_algo=packer.PackingBin.BFF)
+        
+        for b in bins:
+            p.add_bin(b[0], b[1], count=b[2])
+        
+        for r in rects:
+            p.add_rect(r[0], r[1])
+
+        p.pack()
+
+        # verify bin ids correctly assigned
+        for abin in p:
+            self.assertEqual(abin.bid, None)
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

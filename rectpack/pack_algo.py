@@ -4,7 +4,7 @@ from .geometry import Rectangle
 class PackingAlgorithm(object):
     """PackingAlgorithm base class"""
 
-    def __init__(self, width, height, rot=True, *args, **kwargs):
+    def __init__(self, width, height, rot=True, bid=None, *args, **kwargs):
         """
         Initialize packing algorithm
 
@@ -12,11 +12,13 @@ class PackingAlgorithm(object):
             width (int, float): Packing surface width
             height (int, float): Packing surface height
             rot (bool): Rectangle rotation enabled or disabled
+            bid (string|int|...): Packing surface identification
         """
         self.width = width
         self.height = height
         self.rot = rot
         self.rectangles = []
+        self.bid = bid
         self._surface = Rectangle(0, 0, width, height)
         self.reset()
 
