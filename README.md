@@ -1,4 +1,5 @@
-# rectpack
+# rectpack [![Build Status](https://travis-ci.org/secnot/rectpack.svg?branch=master)](https://travis-ci.org/secnot/rectpack)
+
 
 Rectpack is a collection of heuristic algorithms for solving the 2D knapsack problem,
 also known as the bin packing problem. In essence packing a set of rectangles into the 
@@ -121,12 +122,13 @@ A more detailed description of API calls:
   * rotation: Enable or disable rectangle rotation.
 
 
-* packer.**add_bin**(width, height[, count])  
+* packer.**add_bin**(width, height[, count][, bid])  
   Add empty bin or bins to a packer
   * width: Bin width
   * height: Bin height
   * count: Number of bins to add, 1 by default. It's possible to add infinie bins
   with *count=float("inf")*
+  * bid: Optional bin identifier
 
 
 * packer.**add_rect**(width, height[, rid])  

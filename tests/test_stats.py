@@ -54,9 +54,9 @@ def random_rectangle(max_side, min_side, sigma=0.5, ratio=1.0, coherce=True):
     return width, height
 
 
-RECTANGLES = [random_rectangle(40, 20, ratio=1.2) for _ in range(100)]\
-        +[random_rectangle(20, 15, ratio=1.2) for _ in range(100)]
-BINS = [random_rectangle(200, 200, ratio=1.5) for _ in range(3)]
+RECTANGLES = [random_rectangle(40, 20, ratio=1.2) for _ in range(50)]\
+        +[random_rectangle(20, 15, ratio=1.2) for _ in range(50)]
+BINS = [random_rectangle(150, 150, ratio=1.5) for _ in range(3)]
 
 
 class TestWastedSpace(TestCase):
