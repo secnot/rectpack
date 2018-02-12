@@ -6,7 +6,7 @@ smallest number of bins."""
 
 setup(
     name='rectpack',
-    version='0.2',
+    version='0.2.1',
     description=long_description, 
 
     # Main homepage
