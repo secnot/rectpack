@@ -46,7 +46,7 @@ for b in bins:
 packer.pack()
 ```
 
-Once the rectangles have been packed the results can be accessed in several ways:
+Once the rectangles have been packed the results can be accessed individually
 
 ```python
 # Obtain number of bins used for packing
@@ -71,7 +71,16 @@ w = rect.width
 h = rect.height
 ```
 
-But in the majority of cases you will only need a rectangle list:
+looping over all of them
+
+```python
+for abin in packer:
+  print(abin.bid) # Bin id if it has one
+  for rect in abin:
+    print(rect)
+```
+
+or using **rect_list()**
 
 ```python
 # Full rectangle list
