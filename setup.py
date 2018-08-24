@@ -17,7 +17,7 @@ setup(
 
     keywords=['knapsack', 'rectangle', 'packing 2D', 'bin', 'binpacking'],
 
-    license='GPLv2',
+    license='Apache-2.0',
 
     classifiers=[
         'Development Status :: 3 - Alpha',
