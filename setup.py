@@ -6,7 +6,7 @@ smallest number of bins."""
 
 setup(
     name='rectpack',
-    version='0.2',
+    version='0.2.1',
     description=long_description, 
 
     # Main homepage
@@ -17,7 +17,7 @@ setup(
 
     keywords=['knapsack', 'rectangle', 'packing 2D', 'bin', 'binpacking'],
 
-    license='GPLv2',
+    license='Apache-2.0',
 
     classifiers=[
         'Development Status :: 3 - Alpha',
