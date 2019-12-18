@@ -117,20 +117,21 @@ class VSegment(Segment):
 
 class Rectangle(object):
     """Basic rectangle primitive class.
-    x, y-> Lower right corner coordinates
-    width - 
-    height - 
+    x, y-> Lower left corner coordinates
+    width - Rectangle width
+    height - Rectangle height
+    rid - Optional rectangle identifier
     """
     __slots__ = ('width', 'height', 'x', 'y', 'rid')
 
     def __init__(self, x, y, width, height, rid = None):
         """
         Args:
-            x (int, float):
-            y (int, float):
-            width (int, float):
-            height (int, float):
-            rid (int):
+            x (int, float): X coordinate
+            y (int, float): Y coordinate
+            width (int, float): Rectangle width
+            height (int, float): Rectangle height
+            rid (int): Optional rectangle identifier
         """
         assert(height >=0 and width >=0)
 
@@ -157,7 +158,7 @@ class Rectangle(object):
     @property
     def left(self):
         """
-        Rectangle left ednge x coordinate
+        Rectangle left edge x coordinate
         """
         return self.x
 

@@ -100,7 +100,7 @@ class PackingAlgorithm(object):
         Returns a list with all rectangles placed into the surface.
         
         Returns:
-            List: Format [(rid, x, y, width, height), ...]
+            List: Format [(x, y, width, height, rid), ...]
         """
         rectangle_list = []
         for r in self:
