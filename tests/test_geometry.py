@@ -248,7 +248,7 @@ class TestRectangle(TestCase):
         self.assertTrue(r.intersects(r_left, edges=True))
         self.assertTrue(r.intersects(r_right, edges=True))
 
-        # Edges does not include corner intersects
+        # Corner intersects
         r = Rectangle(10, 10, 2, 2)
         r_top_left = Rectangle(8, 12, 2, 2)
         r_top_right = Rectangle(12, 12, 2, 2)
@@ -259,10 +259,10 @@ class TestRectangle(TestCase):
         self.assertFalse(r.intersects(r_bottom_left))
         self.assertFalse(r.intersects(r_bottom_right))
 
-        self.assertFalse(r.intersects(r_top_left, edges=True))
-        self.assertFalse(r.intersects(r_top_right, edges=True))
-        self.assertFalse(r.intersects(r_bottom_left, edges=True))
-        self.assertFalse(r.intersects(r_bottom_right, edges=True))
+        self.assertTrue(r.intersects(r_top_left, edges=True))
+        self.assertTrue(r.intersects(r_top_right, edges=True))
+        self.assertTrue(r.intersects(r_bottom_left, edges=True))
+        self.assertTrue(r.intersects(r_bottom_right, edges=True))
 
 
     def test_intersection(self):
@@ -330,6 +330,11 @@ class TestRectangle(TestCase):
         self.assertEqual(r.intersection(r_top_l), None)
         self.assertEqual(r.intersection(r_bot_r), None)
         self.assertEqual(r.intersection(r_bot_l), None)
+
+        self.assertEqual(r.intersection(r_top_r, edges=True), Rectangle(11, 11, 0, 0))
+        self.assertEqual(r.intersection(r_top_l, edges=True), Rectangle(10, 11, 0, 0))
+        self.assertEqual(r.intersection(r_bot_r, edges=True), Rectangle(11, 10, 0, 0))
+        self.assertEqual(r.intersection(r_bot_l, edges=True), Rectangle(10, 10, 0, 0))
 
     def test_contains(self):
         

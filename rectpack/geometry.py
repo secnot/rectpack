@@ -117,21 +117,20 @@ class VSegment(Segment):
 
 class Rectangle(object):
     """Basic rectangle primitive class.
-    x, y-> Lower left corner coordinates
-    width - Rectangle width
-    height - Rectangle height
-    rid - Optional rectangle identifier
+    x, y-> Lower right corner coordinates
+    width - 
+    height - 
     """
     __slots__ = ('width', 'height', 'x', 'y', 'rid')
 
     def __init__(self, x, y, width, height, rid = None):
         """
         Args:
-            x (int, float): X coordinate
-            y (int, float): Y coordinate
-            width (int, float): Rectangle width
-            height (int, float): Rectangle height
-            rid (int): Optional rectangle identifier
+            x (int, float):
+            y (int, float):
+            width (int, float):
+            height (int, float):
+            rid (int):
         """
         assert(height >=0 and width >=0)
 
@@ -158,7 +157,7 @@ class Rectangle(object):
     @property
     def left(self):
         """
-        Rectangle left edge x coordinate
+        Rectangle left ednge x coordinate
         """
         return self.x
 
@@ -252,37 +251,26 @@ class Rectangle(object):
 
     def intersects(self, rect, edges=False):
         """
-        Detect intersections between this rectangle and rect.
+        Detect intersections between this and another Rectangle.
 
-        Args:
-            rect (Rectangle): Rectangle to test for intersections.
-            edges (bool): Accept edge touching rectangles as intersects or not
+        Parameters:
+            rect (Rectangle): The other rectangle.
+            edges (bool): True to consider rectangles touching by their
+                edges or corners to be intersecting.
+                (Should have been named include_touching)
 
         Returns:
             bool: True if the rectangles intersect, False otherwise
         """
-        # Not even touching
-        if (self.bottom > rect.top or \
-            self.top < rect.bottom or \
-            self.left > rect.right or \
-            self.right < rect.left):
-            return False
-      
-        # Discard edge intersects
-        if not edges:
-            if (self.bottom == rect.top or \
-                self.top == rect.bottom or \
-                self.left == rect.right or \
-                self.right == rect.left):
+        if edges:
+            if (self.bottom > rect.top or self.top < rect.bottom or\
+                self.left > rect.right or self.right < rect.left):
+                return False
+        else:
+            if (self.bottom >= rect.top or self.top <= rect.bottom or
+                self.left >= rect.right or self.right <= rect.left):
                 return False
 
-        # Discard corner intersects 
-        if (self.left == rect.right and self.bottom == rect.top or \
-            self.left == rect.right and rect.bottom == self.top or \
-            rect.left == self.right and self.bottom == rect.top or \
-            rect.left == self.right and rect.bottom == self.top):
-            return False
-    
         return True
 
     def intersection(self, rect, edges=False):
@@ -294,8 +282,9 @@ class Rectangle(object):
         
         Arguments:
              rect (Rectangle): The other rectangle.
-             edges (bool): If true touching edges are considered an intersection, and
-             a rectangle of 0 height or width will be returned
+             edges (bool): If True Rectangles touching by their edges are 
+                considered to be intersection. In this case a rectangle of 
+                0 height or/and width will be returned.
 
         Returns:
             Rectangle: Intersection.
