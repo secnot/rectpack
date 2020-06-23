@@ -43,14 +43,15 @@ pack3D=SolPalletization(_bin_size=bin_size)
 print("Bin Size (W,H,D)=",pack3D.bin_size)
 #print("free rect number=",len(pack3D.packer2D._max_rects))
 start= time.time()
-success,pack_pose=pack3D.pack(preset_cuboids,pack_cuiboid,box_pose=np.identity(4),pick_pose=np.identity(4), level_num=20,display2D=True)
+success,pack_pose,pack_cuboid3D=pack3D.pack(preset_cuboids,pack_cuiboid,box_pose=np.identity(4),pick_pose=np.identity(4), level_num=20,display2D=True)
   
 end = time.time()
 print("Pack time=", end - start)
  
 #DISPLAY by ROS scene 
 if success:
-    print("SUCCESS! pack_pose=\n",pack_pose)
+    print("SUCCESS! \npack_pose=\n",pack_pose)
+    print("pack_cuboid3D=\n",pack_cuboid3D)
     file1 = open("D:\\packing.scene","w")  
       
     # \n is placed to indicate EOL (End of Line) 
@@ -65,8 +66,8 @@ if success:
     
     file1.writelines("PACKED_CUIBOID\n\n")  
     file1.writelines("1\nbox\n")    
-    file1.writelines(str(pack3D.result[3])+" "+str(pack3D.result[4])+" "+str(pack3D.result[5])+"\n")
-    file1.writelines(str(pack3D.result[0]+pack3D.result[3]/2)+" "+str(pack3D.result[1]+pack3D.result[4]/2)+" "+str(pack3D.result[2]+pack3D.result[5]/2)+"\n")
+    file1.writelines(str(pack_cuboid3D[3])+" "+str(pack_cuboid3D[4])+" "+str(pack_cuboid3D[5])+"\n")
+    file1.writelines(str(pack_cuboid3D[0]+pack_cuboid3D[3]/2)+" "+str(pack_cuboid3D[1]+pack_cuboid3D[4]/2)+" "+str(pack_cuboid3D[2]+pack_cuboid3D[5]/2)+"\n")
     file1.writelines("0 0 0 1"+"\n")
     file1.writelines("0 0 0 0"+"\n")
         

@@ -636,8 +636,7 @@ class SolPalletization:
         self.bin_width=_bin_size[0]
         self.bin_height=_bin_size[1]
         self.bin_depth=_bin_size[2]
-        self.bin_pose=_bin_pose
-        self.result=None
+        self.bin_pose=_bin_pose 
     def get_level_list(self,  preset_cuboid=[],pack_cuboid=[], level_num=20):
         search_list=[]
         total_area = self.bin_width * self.bin_height
@@ -718,7 +717,7 @@ class SolPalletization:
             if (packer.add_rect(pack_cuboid[3], pack_cuboid[4])):
                 print("SUCCESS level=",i,"  depth value=",level)
                 current_pack2D_result=packer[0][len(packer[0])-1]
-                self.result=[current_pack2D_result.x,current_pack2D_result.y,level,current_pack2D_result.width, current_pack2D_result.height,pack_cuboid[5]]
+                pack_cuboid3D=[current_pack2D_result.x,current_pack2D_result.y,level,current_pack2D_result.width, current_pack2D_result.height,pack_cuboid[5]]
                 
                 #pick pose in box pose coordinate
                 pick_pose_2_box_pose=(inv(box_pose)).dot(pick_pose)
@@ -763,15 +762,15 @@ class SolPalletization:
                             ax.add_patch(rect2D)
                             
                             ax.text(rect.x+rect.width/2,rect.y+rect.height/2, str(count), fontsize=15)
-                            #print(rect)
+                          
                
-                return True,pack_pose
+                return True,pack_pose,pack_cuboid3D
             #print("============",packer._pack_algo.minWH)
         
             print("Retry Fail",i,"Preset Time (s)=", end_preset - start,"Packing 1 cuboid Time (s)=", time.time() -end_preset)
-        self.result=None
+        
         print("PACKING FAIL!")    
-        return False,None
+        return False,None,None
              
 
 
