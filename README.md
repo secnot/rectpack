@@ -1,5 +1,6 @@
 # rectpack [![Build Status](https://travis-ci.org/secnot/rectpack.svg?branch=master)](https://travis-ci.org/secnot/rectpack)
 
+Improvement of RectPack with preset items - Loc Nguyen
 
 Rectpack is a collection of heuristic algorithms for solving the 2D knapsack problem,
 also known as the bin packing problem. In essence packing a set of rectangles into the 
