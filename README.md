@@ -42,13 +42,8 @@ import matplotlib.pyplot as plt
 import numpy as np 
 from matplotlib.patches import Rectangle
 from PIL import Image
-
-# This import registers the 3D projection, but is otherwise unused.
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
- 
-
-
-preset_cuboids =[]# [[0,0,0,50,50,60],[50,0,0,50,50,150],[200,200,0,50,50,300]]
+  
+preset_cuboids =[[0,0,0,50,50,60],[50,0,0,50,50,150],[200,200,0,50,50,300]]
 pack_cuiboid=[0,0,0,40,50,10]
 bin_size = (300,300,450) 
 
@@ -63,8 +58,6 @@ for i in range(grid_size_w):
     for j in range(grid_size_h):
         if random.uniform(0,1)>0.5:
             preset_cuboids.append([step_w*i,step_h*j,0,step_w,step_h,random.uniform(bin_size[2]/5, bin_size[2]*5/6) ])
-
-
 
 pack3D=SolPalletization(_bin_size=bin_size)
 print("Bin Size (W,H,D)=",pack3D.bin_size)
