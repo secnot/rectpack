@@ -74,7 +74,7 @@ class TestRectangleSort(TestCase):
 
 
 class TestPackerOnline(TestCase):
-    
+   
     def test_bin_iter(self):
         # check iter only loops over closed and open bins (in that order)
         p = packer.PackerOnlineBNF(rotation=False)
@@ -262,10 +262,70 @@ class TestPackerOnline(TestCase):
         self.assertEqual(len(p[0]), 1)
         self.assertTrue('name' in p[0].extra_kwargs)
         self.assertFalse('count' in p[0].extra_kwargs)
+
+    def test_pop_closed(self):
+        """Test popping closed bins"""
+        p = packer.PackerOnlineBNF(rotation=False)
+        p.add_bin(100, 100, count=2, rot=False)
+        p.add_bin(150, 150)
+
+        # No closed bins available
+        with self.assertRaises(IndexError):
+            p.pop_closed()
+
+        self.assertEqual(len(p), 0)
+
+        # Non closed bins + One open bin
+        p.add_rect(90, 90)
+        with self.assertRaises(IndexError):
+            p.pop_closed()
+
+        self.assertEqual(len(p), 1)
+
+        # One closed one open bin
+        p.add_rect(130, 130)
+        self.assertEqual(len(p), 2)
+
+        closed_bin = p.pop_closed()
+        self.assertEqual(closed_bin.width, 100)
+        self.assertEqual(closed_bin.height, 100)
+
+        self.assertEqual(len(p), 1)
+            
+        with self.assertRaises(IndexError):
+            p.pop_closed()
+
+        # Close another bin
+        p.add_rect(80, 80)
+        self.assertEqual(len(p), 2)
+ 
+        closed_bin = p.pop_closed()
+        self.assertEqual(closed_bin.width, 150)
+        self.assertEqual(closed_bin.height, 150)
+
+        self.assertEqual(len(p), 1)
+
+        with self.assertRaises(IndexError):
+            p.pop_closed()
         
 
 class TestPackerOnlineBNF(TestCase):
  
+    def test_return_values(self):
+        """Test add_rect() return values for several online modes"""
+        p = packer.PackerOnlineBNF(rotation=False)
+        p.add_bin(100, 100)
+
+        # If int doens't fit must return None, None
+        self.assertEqual(p.add_rect(120, 120), (None, None))
+
+        # It it fits return Online
+        bin_id, rect = p.add_rect(50, 50)
+        self.assertIsInstance(bin_id, str, "Expecting a string")
+        self.assertIsInstance(rect, Rectangle, "Expecting a Rectangle")
+
+        self.assertEqual(bin_id, next(iter(p)).bid)
+
     def test_bin_selection(self):
         # Check as soon as a rectangle fails to be packed into an open bin
         # the bin is closed, and it's packed into the next bin where it fits.
@@ -339,6 +399,22 @@ class TestPackerOnlineBNF(TestCase):
 
 class TestPackerOnlineBFF(TestCase):
     
+    def test_return_values(self):
+        """Test add_rect() return values for several online modes"""
+        p = packer.PackerOnlineBFF(rotation=False)
+        p.add_bin(100, 100)
+
+        # If int doens't fit must return None, None
+        self.assertEqual(p.add_rect(120, 120), (None, None))
+
+        # It it fits return Online
+        bin_id, rect = p.add_rect(50, 50)
+        self.assertIsInstance(bin_id, str, "Expecting a string")
+        self.assertIsInstance(rect, Rectangle, "Expecting a Rectangle")
+
+        self.assertEqual(bin_id, next(iter(p)).bid)
+
+
     def test_bin_selection(self):
         # check rectangle is packed into the first open bin where it fits,
         # if it can't be packed into any use the first available bin
@@ -418,6 +494,22 @@ class TestPackerOnlineBFF(TestCase):
 
 
 class TestPackerOnlineBBF(TestCase):
+
+    def test_return_values(self):
+        """Test add_rect() return values for several online modes"""
+        p = packer.PackerOnlineBBF(rotation=False)
+        p.add_bin(100, 100)
+
+        # If int doens't fit must return None, None
+        self.assertEqual(p.add_rect(120, 120), (None, None))
+
+        # It it fits return Online
+        bin_id, rect = p.add_rect(50, 50)
+        self.assertIsInstance(bin_id, str, "Expecting a string")
+        self.assertIsInstance(rect, Rectangle, "Expecting a Rectangle")
+
+        self.assertEqual(bin_id, next(iter(p)).bid)
+
 
     def test_bin_selection(self):
         # Check rectangles are packed into the bin with the best fittness
@@ -1138,8 +1230,8 @@ class TestNewPacker(TestCase):
                 bin_algo=packer.PackingBin.BFF, 
                 sort_algo=packer.SORT_RATIO)
 
-    def test_bin_id(self):
-        """Test correct bin id is assigned to each bin"""
+    def test_bin_id_prefix(self):
+        """Test bin idenfier prefixes are used"""
 
         # width, height, count, bid
         bins   = [(100, 50, 1, "first"), (50, 50, 1, "second"), (200, 200, 10, "many")]
@@ -1149,8 +1241,9 @@ class TestNewPacker(TestCase):
         p = packer.newPacker(mode=packer.PackingMode.Offline,
                 bin_algo=packer.PackingBin.BFF)
         
+
         for b in bins:
-            p.add_bin(b[0], b[1], count=b[2], bid=b[3])
+            p.add_bin(b[0], b[1], count=b[2], bid_prefix=b[3])
         
         for r in rects:
             p.add_rect(r[0], r[1])
@@ -1159,10 +1252,11 @@ class TestNewPacker(TestCase):
 
         # verify bin ids correctly assigned
         for abin in p:
-            self.assertEqual(binIdx[(abin.width, abin.height)], abin.bid)
+            prefix = binIdx[(abin.width, abin.height)]
+            self.assertEqual(abin.bid[:len(prefix)], prefix)
  
     def test_bin_default_id(self):
-        """Test default bin id is None"""
+        """Test default bin id is random and unique"""
         bins   = [(100, 50, 1), (50, 50, 1), (200, 200, 10)]
         rects = [(199, 199), (100, 40), (40, 40), (20, 20), (180, 179)]
 
@@ -1178,43 +1272,5 @@ class TestNewPacker(TestCase):
         p.pack()
 
         # verify bin ids correctly assigned
-        for abin in p:
-            self.assertEqual(abin.bid, None)
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        bin_ids = set(bbin.bid for bbin in p)
+        self.assertEqual(len(bin_ids), len(p))
