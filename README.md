@@ -1,4 +1,26 @@
-# rectpack [![Build Status](https://travis-ci.org/secnot/rectpack.svg?branch=master)](https://travis-ci.org/secnot/rectpack)
+# SolPacker Python version [![Build Status](https://travis-ci.org/secnot/rectpack.svg?branch=master)](https://travis-ci.org/secnot/rectpack)
+
+Packing 3D cuboids with preset items based on rectpack 
+Copyright (c) 2020 - Loc Nguyen
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 Rectpack is a collection of heuristic algorithms for solving the 2D knapsack problem,
@@ -23,221 +45,83 @@ pip install rectpack
 ```
 
 ## Basic Usage
+ 
+# -*- coding: utf-8 -*-
+"""
+Test 3D Bin Packing
+Author: Loc Nguyen
+"""
+from rectpack.packer import SolPalletization
+from rectpack import *
 
-Packing rectangles into a number of bins is very simple:
+import random 
+import time
+import random 
+  
 
-```python
-from rectpack import newPacker
+import matplotlib.pyplot as plt
+import numpy as np 
+from matplotlib.patches import Rectangle
+from PIL import Image
+  
+preset_cuboids =[[0,0,0,50,50,60],[50,0,0,50,50,150],[200,200,0,50,50,300]]
+pack_cuiboid=[0,0,0,40,50,10]
+bin_size = (300,300,450) 
 
-rectangles = [(100, 30), (40, 60), (30, 30),(70, 70), (100, 50), (30, 30)]
-bins = [(300, 450), (80, 40), (200, 150)]
+#generate grid
+grid_size_w=28
+grid_size_h=28
 
-packer = newPacker()
+step_w=bin_size[0]/grid_size_w
+step_h=bin_size[1]/grid_size_h
 
-# Add the rectangles to packing queue
-for r in rectangles:
-	packer.add_rect(*r)
+for i in range(grid_size_w):
+    for j in range(grid_size_h):
+        if random.uniform(0,1)>0.5:
+            preset_cuboids.append([step_w*i,step_h*j,0,step_w,step_h,random.uniform(bin_size[2]/5, bin_size[2]*5/6) ])
 
-# Add the bins where the rectangles will be placed
-for b in bins:
-	packer.add_bin(*b)
+pack3D=SolPalletization(_bin_size=bin_size)
+print("Bin Size (W,H,D)=",pack3D.bin_size)
+#print("free rect number=",len(pack3D.packer2D._max_rects))
+start= time.time()
+success,pack_pose=pack3D.pack(preset_cuboids,pack_cuiboid,box_pose=np.identity(4),pick_pose=np.identity(4), level_num=20,display2D=True)
+  
+end = time.time()
+print("Pack time=", end - start)
+ 
+#DISPLAY by ROS scene 
+if success:
+    print("SUCCESS! pack_pose=\n",pack_pose)
+    file1 = open("D:\\packing.scene","w")  
+      
+    # \n is placed to indicate EOL (End of Line) 
+    file1.write("Scene Objects for ROS \n") 
+    
+    file1.writelines("BIN\n\n")  
+    file1.writelines("1\nbox\n")    
+    file1.writelines(str(bin_size[0])+" "+str(bin_size[1])+" "+str(bin_size[2])+"\n")
+    file1.writelines(str(bin_size[0]/2)+" "+str(bin_size[1]/2)+" "+str(bin_size[2]/2)+"\n")
+    file1.writelines("0 0 0 1"+"\n")
+    file1.writelines("0 0 0 0"+"\n")
+    
+    file1.writelines("PACKED_CUIBOID\n\n")  
+    file1.writelines("1\nbox\n")    
+    file1.writelines(str(pack3D.result[3])+" "+str(pack3D.result[4])+" "+str(pack3D.result[5])+"\n")
+    file1.writelines(str(pack3D.result[0]+pack3D.result[3]/2)+" "+str(pack3D.result[1]+pack3D.result[4]/2)+" "+str(pack3D.result[2]+pack3D.result[5]/2)+"\n")
+    file1.writelines("0 0 0 1"+"\n")
+    file1.writelines("0 0 0 0"+"\n")
+        
+    
+    for i,cuboid in enumerate(preset_cuboids):
+        file1.writelines("cuboid "+str(i)+"\n\n")  
+        file1.writelines("1\nbox\n")    
+        file1.writelines(str(cuboid[3])+" "+str(cuboid[4])+" "+str(cuboid[5])+"\n")
+        file1.writelines(str(cuboid[0]+cuboid[3]/2)+" "+str(cuboid[1]+cuboid[4]/2)+" "+str(cuboid[2]+cuboid[5]/2)+"\n")
+        file1.writelines("0 0 0 1"+"\n")
+        file1.writelines("0 0 0 0"+"\n")
+    file1.close() #to change file access modes 
 
-# Start packing
-packer.pack()
-```
-
-Once the rectangles have been packed the results can be accessed individually
-
-```python
-# Obtain number of bins used for packing
-nbins = len(packer)
-
-# Index first bin
-abin = packer[0]
-
-# Bin dimmensions (bins can be reordered during packing)
-width, height = abin.width, abin.height
-
-# Number of rectangles packed into first bin
-nrect = len(packer[0])
-
-# Second bin first rectangle
-rect = packer[1][0]
-
-# rect is a Rectangle object
-x = rect.x # rectangle bottom-left x coordinate
-y = rect.y # rectangle bottom-left y coordinate
-w = rect.width
-h = rect.height
-```
-
-looping over all of them
-
-```python
-for abin in packer:
-  print(abin.bid) # Bin id if it has one
-  for rect in abin:
-    print(rect)
-```
-
-or using **rect_list()**
-
-```python
-# Full rectangle list
-all_rects = packer.rect_list()
-for rect in all_rects:
-	b, x, y, w, h, rid = rect
-
-# b - Bin index
-# x - Rectangle bottom-left corner x coordinate
-# y - Rectangle bottom-left corner y coordinate
-# w - Rectangle width
-# h - Rectangle height
-# rid - User asigned rectangle id or None
-```
-
-Lastly all the dimmension (bins and rectangles) must be integers or decimals to avoid
-collisions caused by floating point rounding. If your data is floating point use 
-float2dec to convert float values to decimals (see float below)
-
-
-## API
-
-A more detailed description of API calls:
-
-* class **newPacker**([, mode][, bin_algo][, pack_algo][, sort_algo][, rotation])  
-  Return a new packer object
-  * mode: Mode of operations
-    * PackingMode.Offline: The set of rectangles is known beforehand, packing won't
-    start until *pack()* is called.
-    * PackingMode.Online: The rectangles are unknown at the beginning of the job, and
-    will be packed as soon as they are added.
-  * bin_algo: Bin selection heuristic
-    * PackingBin.BNF: (Bin Next Fit) If a rectangle doesn't fit into the current bin,
-    close it and try next one.
-    * PackingBin.BFF: (Bin First Fit) Pack rectangle into the first bin it fits (without closing)
-    * PackingBin.BBF: (Bin Best Fit) Pack rectangle into the bin that gives best fitness.
-    * PackingBin.Global: For each bin pack the rectangle with the best fitness until it is full,
-    then continue with next bin.
-  * pack_algo: One of the supported packing algorithms (see list below)
-  * sort_algo: Rectangle sort order before packing (only for offline mode)
-    * SORT_NONE: Rectangles left unsorted.
-    * SORT_AREA: Sort by descending area.
-    * SORT_PERI: Sort by descending perimeter.
-    * SORT_DIFF: Sort by difference of rectangle sides.
-    * SORT_SSIDE: Sort by shortest side.
-    * SORT_LSIDE: Sort by longest side.
-    * SORT_RATIO: Sort by ration between sides.
-  * rotation: Enable or disable rectangle rotation.
-
-
-* packer.**add_bin**(width, height[, count][, bid])  
-  Add empty bin or bins to a packer
-  * width: Bin width
-  * height: Bin height
-  * count: Number of bins to add, 1 by default. It's possible to add infinie bins
-  with *count=float("inf")*
-  * bid: Optional bin identifier
-
-
-* packer.**add_rect**(width, height[, rid])  
-  Add rectangle to packing queue
-  * width: Rectangle width
-  * height: Rectangle height
-  * rid: User assigned rectangle id
-
-
-* packer.**pack**():  
-  Starts packing process (only for offline mode).
-
-
-* packer.**rect_list**():  
-  Returns the list of packed rectangles, each one represented by the tuple (b, x, y, w, h, rid) where:
-  * b: Index for the bin the rectangle was packed into
-  * x: X coordinate for the rectangle bottom-left corner
-  * y: Y coordinate for the rectangle bottom-left corner
-  * w: Rectangle width
-  * h: Rectangle height
-  * rid: User provided id or None
-
-
-## Supported Algorithms
-
-This library implements three of the algorithms described in [1] Skyline, Maxrects, 
-and Guillotine, with the following variants:
-
-* MaxRects  
-  * MaxRectsBl
-  * MaxRectsBssf
-  * MaxRectsBaf
-  * MaxRectsBlsf
-
-
-* Skyline  
-  * SkylineBl
-  * SkylineBlWm
-  * SkylineMwf
-  * SkylineMwfl
-  * SkylineMwfWm
-  * SkylineMwflWm
-
-
-* Guillotine  
-  * GuillotineBssfSas
-  * GuillotineBssfLas
-  * GuillotineBssfSlas
-  * GuillotineBssfLlas
-  * GuillotineBssfMaxas
-  * GuillotineBssfMinas
-  * GuillotineBlsfSas
-  * GuillotineBlsfLas
-  * GuillotineBlsfSlas
-  * GuillotineBlsfLlas
-  * GuillotineBlsfMaxas
-  * GuillotineBlsfMinas
-  * GuillotineBafSas
-  * GuillotineBafLas
-  * GuillotineBafSlas
-  * GuillotineBafLlas
-  * GuillotineBafMaxas
-  * GuillotineBafMinas
-
-I recommend to use the default algorithm unless the packing is too slow, in that 
-case switch to one of the Guillotine variants for example *GuillotineBssfSas*. 
-You can learn more about the algorithms in [1].
-
-## Testing
-
-Rectpack is thoroughly tested, run the tests with:
-
-```bash
-python setup.py test
-```
-
-or
-
-```bash
-python -m unittest discover
-```
-
-## Float
-
-If you need to use floats just convert them to fixed-point using a Decimal type,
-be carefull rounding up so the actual rectangle size is always smaller than
-the conversion. Rectpack provides helper funcion **float2dec** for this task,
-it accepts a number and the number of decimals to round to, and returns
-the rounded Decimal.
-
-```python
-	from rectpack import float2dec, newPacker
-
-	float_rects = [...]
-	dec_rects = [(float2dec(r[0], 3), float2dec(r[1], 3)) for r in float_rects]
-
-	p = newPacker()
-    ...
-```
-
+#===========================================
 ## References
 
 [1] Jukka Jylang - A Thousand Ways to Pack the Bin - A Practical Approach to Two-Dimensional

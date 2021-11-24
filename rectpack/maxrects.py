@@ -10,9 +10,12 @@ first_item = operator.itemgetter(0)
 
 
 class MaxRects(PackingAlgorithm):
-
+    minWH=0.000000001 
     def __init__(self, width, height, rot=True, *args, **kwargs):
         super(MaxRects, self).__init__(width, height, rot, *args, **kwargs)
+        #self.minWH=0.000000001 
+        self.current_pack2D_result=None
+        #print("base init...")
    
     def _rect_fitness(self, max_rect, width, height):
         """
@@ -82,13 +85,13 @@ class MaxRects(PackingAlgorithm):
         """
         new_rects = []
         
-        if r.left > m.left:
+        if r.left - m.left>=self.minWH:#ORIGINAL CODE: r.left > m.left
             new_rects.append(Rectangle(m.left, m.bottom, r.left-m.left, m.height))
-        if r.right < m.right:
+        if m.right-r.right >=self.minWH:
             new_rects.append(Rectangle(r.right, m.bottom, m.right-r.right, m.height))
-        if r.top < m.top:
+        if  m.top-r.top>=self.minWH:
             new_rects.append(Rectangle(m.left, r.top, m.width, m.top-r.top))
-        if r.bottom > m.bottom:
+        if r.bottom - m.bottom>=self.minWH:
             new_rects.append(Rectangle(m.left, m.bottom, m.width, r.bottom-m.bottom))
         
         return new_rects
@@ -169,8 +172,39 @@ class MaxRects(PackingAlgorithm):
 
         # Search best position and orientation
         rect, _ = self._select_position(width, height)
-        if not rect:
+        self.current_pack2D_result=rect
+        if not rect: 
             return None
+        
+        # Subdivide all the max rectangles intersecting with the selected 
+        # rectangle.
+        self._split(rect)
+    
+        # Remove any max_rect contained by another 
+        self._remove_duplicates()
+
+        # Store and return rectangle position.
+        rect.rid = rid
+        self.rectangles.append(rect)
+        return rect
+
+    def add_preset_rect(self, x,y,width, height, rid=None):
+        """
+        Add rectangle of widthxheight dimensions.
+
+        Arguments:
+            width (int, float): Rectangle width
+            height (int, float): Rectangle height
+            rid: Optional rectangle user id
+
+        Returns:
+            Rectangle: Rectangle with placemente coordinates
+            None: If the rectangle couldn be placed.
+        """
+        assert(width > 0 and height >0)
+
+        # Search best position and orientation
+        rect =Rectangle(x,y,width, height)
         
         # Subdivide all the max rectangles intersecting with the selected 
         # rectangle.
@@ -217,13 +251,20 @@ class MaxRectsBl(MaxRects):
         return Rectangle(m.x, m.y, w, h), m
 
 
-class MaxRectsBssf(MaxRects):
+class MaxRectsBssf(MaxRects):   
+    def print_value():
+        print("=====value=123")
     """Best Sort Side Fit minimize short leftover side"""
     def _rect_fitness(self, max_rect, width, height):
         if width > max_rect.width or height > max_rect.height:
             return None
 
-        return min(max_rect.width-width, max_rect.height-height)
+        #Loc 20200618 replace condition
+        #return min(max_rect.width-width, max_rect.height-height)
+        #pack along Y
+        #return max_rect.x+max_rect.y+height/2+min(max_rect.width-width, max_rect.height-height)
+        #pack along X
+        return max_rect.x+max_rect.y+width/2+min(max_rect.width-width, max_rect.height-height)
            
 class MaxRectsBaf(MaxRects):
     """Best Area Fit pick maximal rectangle with smallest area

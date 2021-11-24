@@ -4,7 +4,21 @@ import operator
 import itertools
 import collections
 
+import time
 import decimal
+from operator import itemgetter
+
+
+import random 
+import time
+
+import numpy as np
+from numpy.linalg import inv
+from scipy.spatial.transform import Rotation as RotMat
+
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from PIL import Image
 
 # Float to Decimal helper
 def float2dec(ft, decimal_digits):
@@ -164,8 +178,9 @@ class PackerBBFMixin(object):
         fit = (b for b in fit if b[0] is not None)
         try:
             _, best_bin = min(fit, key=self.first_item)
-            best_bin.add_rect(width, height, rid)
-            return True
+            
+            return best_bin.add_rect(width, height, rid)
+            #return True
         except ValueError:
             pass    
 
@@ -178,10 +193,33 @@ class PackerBBFMixin(object):
 
             # _new_open_bin may return a bin that's too small,
             # so we have to double-check
-            if new_bin.add_rect(width, height, rid):
+            return new_bin.add_rect(width, height, rid)
+            #if self.result2D:
+            #    return True
+
+    def add_preset_rect(self, x, y , width, height, rid=None):
+ 
+        # Try packing into open bins
+        fit = ((b.fitness(width, height),  b) for b in self._open_bins)
+        fit = (b for b in fit if b[0] is not None)
+        try:
+            _, best_bin = min(fit, key=self.first_item)
+            best_bin.add_preset_rect(x,y,width, height, rid)
+            return True
+        except ValueError:
+            pass    
+
+        # Try packing into one of the empty bins
+        while True:
+            # can we find an unopened bin that will hold this rect?
+            new_bin = self._new_open_bin(width, height, rid=rid)
+            if new_bin is None:
+                return False
+
+            # _new_open_bin may return a bin that's too small,
+            # so we have to double-check   
+            if new_bin.add_preset_rect(x,y,width, height, rid):
                 return True
-
-
 
 class PackerOnline(object):
     """
@@ -578,3 +616,163 @@ def newPacker(mode=PackingMode.Offline,
         return packer_class(pack_algo=pack_algo, rotation=rotation)
 
 
+class SolPalletization:
+    """
+    SolPalletization for 3D packing with point cloud
+    
+    Note: Rotation is Euler Angle following Fanuc Robot definition: rx,ry,rz
+    cuboid(x,y,z,w,h,d)
+    Arguments:
+        Bin Size: (Width,Height,Depth)
+        Preset Cuboids: [(x,y,z,w,h,d)]
+        Pack N Cuboids:[(w,h,d)]        
+        Robot N Picking Pose: [(x,y,z,rx,ry,rz)]
+
+    Returns:
+        Pack N Cuboids Pose:[(x,y,z,rx,ry,rz)]
+    """
+    def __init__(self, _bin_size=(600,380,450),_bin_pose=np.identity(4), rot=True):
+        self.bin_size=_bin_size
+        self.bin_width=_bin_size[0]
+        self.bin_height=_bin_size[1]
+        self.bin_depth=_bin_size[2]
+        self.bin_pose=_bin_pose 
+    def get_level_list(self,  preset_cuboid=[],pack_cuboid=[], level_num=20):
+        search_list=[]
+        total_area = self.bin_width * self.bin_height
+        pack_cuboid_area=pack_cuboid[3]*pack_cuboid[4]
+        
+        #get list of (depth, area) for cuboid
+        level_list= [ [x[2]+x[5],x[3]*x[4]] for x in preset_cuboid if (x[2]+x[5])>0 and (x[2]+x[5]+pack_cuboid[5])<self.bin_depth] #(z+d,w*h) for (depth,area) of cuboid 
+        
+        #sort decrease by depth
+        level_list.sort(key=itemgetter(0), reverse=True)
+        
+        # append the bottom of bin with Zero Area
+        level_list.append([0,0])
+        
+        #calculate occupied area at each level
+        delete_indices=[]
+        for i in range(1,len(level_list)):
+            level_list[i][1]+=level_list[i-1][1]  
+            if (level_list[i][0]==level_list[i-1][0]):
+                delete_indices.append(i-1)
+            if (level_list[i][1]+pack_cuboid_area>total_area):
+                delete_indices.append( list(range(i,len(level_list)))  )
+                break #skip checking other cuboids
+              
+        #keep level only
+        level_list_filter = [v for i,v in enumerate(level_list) if i not in delete_indices] 
+        
+        #remove level that available not fit
+        if len(level_list_filter)>level_num and level_num>0:
+            max_level=self.bin_depth#level_list_filter[0][0]
+            min_level=0#level_list_filter[len(level_list_filter)-1][0]
+            #Loop for level_num
+            step=(max_level-min_level)/level_num
+            
+            start_index=0 
+            
+            # search all 
+            for i in range(-1,level_num):
+                group_i=[v[0] for v in level_list_filter if v[0]>min_level+i*step and v[0]<=min_level+(i+1)*step] 
+                if (len(group_i)>0):
+                    search_list.append(max(group_i))
+            return search_list
+        else:
+            level_list_filter.sort(key=itemgetter(0))
+            return  [v[0] for v in level_list_filter]
+             
+        
+    def pack(self, preset_cuboid=[],pack_cuboid=[],box_pose=np.identity(4),pick_pose=np.identity(4),level_num=20, display2D=False): 
+        #Get level list
+        level_list=self.get_level_list(preset_cuboid,pack_cuboid,level_num)
+        print("Number of searching level=",len(level_list))
+        print("List of searching level=",level_list)
+         
+        #Start Packing 
+        for i,level in enumerate(level_list):   
+            start= time.time() 
+            packer = newPacker(mode=PackingMode.Online, 
+                               bin_algo=PackingBin.BBF, 
+                               pack_algo=MaxRectsBssf,#( self.bin_width,self.bin_height),
+                               sort_algo=SORT_AREA, 
+                               rotation=True)
+            packer.add_bin(self.bin_width,self.bin_height)
+            
+            
+            #Note: packer._pack_alg is a class name 
+            #minWH is class attribute
+            packer._pack_algo.minWH= min(pack_cuboid[3],pack_cuboid[4])
+            
+            for cuboid in preset_cuboid:
+                if(cuboid[2]+cuboid[5]>level):
+                    packer.add_preset_rect(cuboid[0],cuboid[1],cuboid[3],cuboid[4])
+                    
+            print("packer._pack_algo.minWH=",packer._pack_algo.minWH)
+            
+            end_preset = time.time() 
+            
+            #print("pack2d result=",packer._pack_algo.current_pack2D_result)
+            if (packer.add_rect(pack_cuboid[3], pack_cuboid[4])):
+                print("SUCCESS level=",i,"  depth value=",level)
+                current_pack2D_result=packer[0][len(packer[0])-1]
+                pack_cuboid3D=[current_pack2D_result.x,current_pack2D_result.y,level,current_pack2D_result.width, current_pack2D_result.height,pack_cuboid[5]]
+                
+                #pick pose in box pose coordinate
+                pick_pose_2_box_pose=(inv(box_pose)).dot(pick_pose)
+                 
+                pack_pose=np.identity(4)
+                #checking rotatation of box
+                if abs(current_pack2D_result.width-pack_cuboid[3])<0.00001 and abs(current_pack2D_result.height-pack_cuboid[4])<0.00001:
+                    #NOT rotated
+                    #cuboid pose in bin coordinate
+                    cuboid_2_bin_pose_tran= np.identity(4)
+                    cuboid_2_bin_pose_tran[:3, 3] = [current_pack2D_result.x,current_pack2D_result.y,level] 
+                 
+                    pack_pose=self.bin_pose.dot(cuboid_2_bin_pose_tran.dot(pick_pose_2_box_pose))
+                else:
+                    print("NOTE: Box is rotated 90 degrees!")
+                    cuboid_2_bin_pose_tran= np.identity(4)
+                    cuboid_2_bin_pose_tran[:3, 3] = [current_pack2D_result.x+current_pack2D_result.width,current_pack2D_result.y,level] 
+                 
+                    cuboid_2_bin_pose_rot= np.identity(4)
+                    cuboid_2_bin_pose_rot[:3, :3] = RotMat.from_euler('z', 90, degrees=True).as_matrix()
+                  
+                    pack_pose=self.bin_pose.dot(cuboid_2_bin_pose_tran.dot(cuboid_2_bin_pose_rot.dot(pick_pose_2_box_pose)))
+                  
+  
+                #DRAWING for DEBUG
+                if (display2D):
+                    plt.figure(figsize=(10,10)) 
+                    plt.xlabel('Bin Packing 2D - SolPacker')
+                    plt.xlim(0,self.bin_width)
+                    plt.ylim(0,self.bin_height)
+                    # Get the current reference
+                    ax = plt.gca()
+                    
+                    print("packer[0]=",packer[0])
+                    for abin in packer:
+                        print("abin.bid=",abin.bid) # Bin id if it has one
+                        for count,rect in enumerate(abin): 
+                            # Create a Rectangle patch
+                            rect2D = Rectangle((rect.x,rect.y),rect.width,rect.height,linewidth=2,edgecolor=(0,0,0),facecolor=(random.uniform(0.2, 1), random.uniform(0.2, 1), random.uniform(0.2, 1)))
+                    
+                            # Add the patch to the Axes
+                            ax.add_patch(rect2D)
+                            
+                            ax.text(rect.x+rect.width/2,rect.y+rect.height/2, str(count), fontsize=15)
+                          
+               
+                return True,pack_pose,pack_cuboid3D
+            #print("============",packer._pack_algo.minWH)
+        
+            print("Retry Fail",i,"Preset Time (s)=", end_preset - start,"Packing 1 cuboid Time (s)=", time.time() -end_preset)
+        
+        print("PACKING FAIL!")    
+        return False,None,None
+             
+
+
+ 
+   
