@@ -7,7 +7,8 @@ smallest number of bins."""
 setup(
     name="rectpack",
     version="0.2.2",
-    description=long_description,
+    description="2D Rectangle packing library",
+    long_description=long_description,
     url="https://github.com/secnot/rectpack/",
     author="SecNot",
     keywords=["knapsack", "rectangle", "packing 2D", "bin", "binpacking"],
