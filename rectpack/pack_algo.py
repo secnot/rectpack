@@ -124,8 +124,8 @@ class PackingAlgorithm(object):
         if len(rectangles) <= 1:
             return
 
-        for r1 in range(0, len(rectangles)-2):
-            for r2 in range(r1+1, len(rectangles)-1):
+        for r1 in range(0, len(rectangles)-1):
+            for r2 in range(r1+1, len(rectangles)):
                 if rectangles[r1].intersects(rectangles[r2]):
                     raise Exception("Rectangle collision detected")
 
