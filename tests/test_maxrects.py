@@ -1,3 +1,5 @@
+import itertools
+import random
 from unittest import TestCase
 from rectpack.geometry import Rectangle, Point
 import rectpack.maxrects as maxrects
@@ -281,3 +283,57 @@ class TestMaxRectBSSF(TestCase):
         self.assertTrue(m.fitness(30, 91) > m.fitness(30, 92))
         self.assertTrue(m.fitness(38, 91) < m.fitness(30, 92))
         self.assertTrue(m.fitness(38, 91) > m.fitness(40, 92))
+
+
+class TestIncrementalRemoveDuplicates(TestCase):
+    """_remove_duplicates only compares the rectangles created by the last
+    _split with the rest when it can. It must give exactly the same list,
+    in the same order, as comparing every pair."""
+
+    @staticmethod
+    def _reference(max_rects):
+        contained = set()
+        for m1, m2 in itertools.combinations(max_rects, 2):
+            if m1.contains(m2):
+                contained.add(m2)
+            elif m2.contains(m1):
+                contained.add(m1)
+        return [m for m in max_rects if m not in contained]
+
+    def test_same_result_as_comparing_every_pair(self):
+        test = self
+        rng = random.Random(7)
+        for algo in (maxrects.MaxRectsBl, maxrects.MaxRectsBssf,
+                     maxrects.MaxRectsBaf, maxrects.MaxRectsBlsf):
+
+            class Checked(algo):
+                def _remove_duplicates(self):
+                    before = list(self._max_rects)
+                    super(Checked, self)._remove_duplicates()
+                    test.assertEqual(self._max_rects, test._reference(before))
+
+            for _ in range(30):
+                m = Checked(rng.randint(5, 80), rng.randint(5, 80),
+                            rot=rng.random() < 0.5)
+                for _ in range(30):
+                    m.add_rect(rng.randint(1, 30), rng.randint(1, 30))
+
+    def test_two_splits_before_removing_duplicates(self):
+        # Splitting twice in a row leaves the first split's rectangles in
+        # the list, so every pair has to be checked.
+        m = maxrects.MaxRects(100, 100)
+        m._split(Rectangle(10, 10, 20, 20))
+        m._split(Rectangle(50, 50, 20, 20))
+        expected = self._reference(list(m._max_rects))
+        m._remove_duplicates()
+        self.assertEqual(m._max_rects, expected)
+
+    def test_list_replaced_between_calls(self):
+        m = maxrects.MaxRects(100, 100)
+        m.add_rect(30, 30)
+        m._max_rects = [Rectangle(0, 0, 60, 40), Rectangle(30, 20, 60, 40),
+                        Rectangle(35, 25, 10, 10)]
+        m._split(Rectangle(50, 0, 10, 10))
+        expected = self._reference(list(m._max_rects))
+        m._remove_duplicates()
+        self.assertEqual(m._max_rects, expected)
