@@ -104,30 +104,63 @@ class MaxRects(PackingAlgorithm):
         Returns:
             split (Rectangle list): List of rectangles resulting from the split
         """
-        max_rects = collections.deque()
+        max_rects = []
+        new_rects = []  # Positions of the max_rects created by this split
 
         for r in self._max_rects:
             if r.intersects(rect):
-                max_rects.extend(self._generate_splits(r, rect))
+                for s in self._generate_splits(r, rect):
+                    new_rects.append(len(max_rects))
+                    max_rects.append(s)
             else:
                 max_rects.append(r)
 
+        # If the list being split is the one left by the last call to
+        # _remove_duplicates, none of its rectangles contains another, so
+        # only pairs involving a new rectangle need to be checked later.
+        # Otherwise (list replaced, or split twice in a row) check them all.
+        if self._max_rects is self._clean_rects:
+            self._new_rects = new_rects
+        else:
+            self._new_rects = None
+
         # Add newly generated max_rects
-        self._max_rects = list(max_rects)
+        self._max_rects = max_rects
+        self._split_rects = max_rects
 
     def _remove_duplicates(self):
         """
         Remove every maximal rectangle contained by another one.
         """
+        max_rects = self._max_rects
+        new_rects = self._new_rects
+        self._new_rects = None
+
         contained = set()
-        for m1, m2 in itertools.combinations(self._max_rects, 2):
-            if m1.contains(m2):
-                contained.add(m2)
-            elif m2.contains(m1):
-                contained.add(m1)
-        
+        if new_rects is not None and max_rects is self._split_rects:
+            # Fast path: this list comes straight from _split, and the list
+            # it was built from had no contained rectangles.
+            for i in new_rects:
+                m1 = max_rects[i]
+                for j, m2 in enumerate(max_rects):
+                    if i == j:
+                        continue
+                    if m1.contains(m2):
+                        contained.add(m2)
+                    if m2.contains(m1):
+                        contained.add(m1)
+        else:
+            for m1, m2 in itertools.combinations(max_rects, 2):
+                if m1.contains(m2):
+                    contained.add(m2)
+                elif m2.contains(m1):
+                    contained.add(m1)
+
         # Remove from max_rects
-        self._max_rects = [m for m in self._max_rects if m not in contained]
+        if contained:
+            max_rects = [m for m in max_rects if m not in contained]
+        self._max_rects = max_rects
+        self._clean_rects = max_rects
 
     def fitness(self, width, height): 
         """
@@ -187,6 +220,9 @@ class MaxRects(PackingAlgorithm):
     def reset(self):
         super(MaxRects, self).reset()
         self._max_rects = [Rectangle(0, 0, self.width, self.height)]
+        self._clean_rects = self._max_rects # List known to be free of contained rects
+        self._split_rects = None            # List produced by the last _split
+        self._new_rects = None              # Positions of rects created by that split
 
 
 
