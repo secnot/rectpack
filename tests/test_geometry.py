@@ -26,6 +26,20 @@ class TestPoint(TestCase):
 
         self.assertEqual(p1.distance(p2), 1)
 
+    def test_equality_with_unrelated_objects(self):
+        point = Point(1, 2)
+        for other in (None, (1, 2), object()):
+            self.assertNotEqual(point, other)
+            self.assertNotEqual(other, point)
+            self.assertNotIn(other, [point])
+
+    def test_reflected_equality(self):
+        class EqualPoint(object):
+            def __eq__(self, other):
+                return isinstance(other, Point)
+
+        self.assertEqual(Point(1, 2), EqualPoint())
+
 
 class TestSegment(TestCase):
     
@@ -60,6 +74,27 @@ class TestSegment(TestCase):
         s3 = Segment(Point(0, 0), Point(0, 10))
         self.assertEqual(s1, s3)
         self.assertNotEqual(s1, s2)
+
+    def test_equality_with_unrelated_objects(self):
+        for segment in (Segment(Point(0, 0), Point(1, 0)),
+                HSegment(Point(0, 0), 1), VSegment(Point(0, 0), 1)):
+            for other in (None, (segment.start, segment.end), object()):
+                self.assertNotEqual(segment, other)
+                self.assertNotEqual(other, segment)
+                self.assertNotIn(other, [segment])
+
+    def test_reflected_equality(self):
+        class EqualSegment(object):
+            def __eq__(self, other):
+                return isinstance(other, Segment)
+
+        self.assertEqual(Segment(Point(0, 0), Point(1, 0)), EqualSegment())
+
+    def test_equality_across_segment_types(self):
+        self.assertEqual(Segment(Point(0, 0), Point(1, 0)),
+                HSegment(Point(0, 0), 1))
+        self.assertEqual(VSegment(Point(0, 0), 1),
+                Segment(Point(0, 0), Point(0, 1)))
 
 class TestHSegment(TestCase):
 
