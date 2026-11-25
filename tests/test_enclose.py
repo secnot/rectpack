@@ -112,3 +112,30 @@ class TestEnclose(TestCase):
         en = enclose.Enclose(max_width=50, max_height=50)
         packer = en.generate()
         self.assertEqual(packer, None)
+
+    def test_single_rectangle(self):
+        for rotation in (False, True):
+            packer = enclose.Enclose([(4, 4)], rotation=rotation).generate()
+            self.assertEqual((packer.width, packer.height), (4, 4))
+            self.assertEqual(len(packer[0]), 1)
+
+        packer = enclose.Enclose([(4, 6)], rotation=False).generate()
+        self.assertEqual((packer.width, packer.height), (4, 6))
+
+    def test_exact_width_limit(self):
+        packer = enclose.Enclose([(4, 6), (4, 6)], max_width=4,
+                rotation=False).generate()
+        self.assertEqual((packer.width, packer.height), (4, 12))
+        self.assertEqual(len(packer[0]), 2)
+        packer.validate_packing()
+
+    def test_width_limit_too_small(self):
+        for rotation in (False, True):
+            packer = enclose.Enclose([(4, 6)], max_width=3,
+                    rotation=rotation).generate()
+            self.assertIsNone(packer)
+
+    def test_candidate_with_no_fitting_rectangle(self):
+        packer = enclose.Enclose([(4, 10)], max_width=8,
+                max_height=6).generate()
+        self.assertIsNone(packer)
