@@ -11,6 +11,8 @@ class Point(object):
         self.y = y
 
     def __eq__(self, other):
+        if not isinstance(other, Point):
+            return NotImplemented
         return (self.x == other.x and self.y == other.y)
 
     def __repr__(self):
@@ -41,8 +43,8 @@ class Segment(object):
         self.end = end
 
     def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            None
+        if not isinstance(other, Segment):
+            return NotImplemented
         return self.start==other.start and self.end==other.end
 
     def __repr__(self):
