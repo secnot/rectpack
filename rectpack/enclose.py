@@ -58,7 +58,8 @@ class Enclose(object):
         if self._max_height and self._max_height < max_height:
             max_height = self._max_height
 
-        assert(max_width>min_width)
+        if max_width < min_width:
+            return []
  
         # Generate initial container widths
         candidates = [max_width, min_width]
@@ -109,7 +110,7 @@ class Enclose(object):
         packer.pack()
 
         # Check all rectangles where packed
-        if len(packer[0]) != len(self._rectangles):
+        if not packer or len(packer[0]) != len(self._rectangles):
             return None
 
         # Find highest rectangle
